@@ -1,4 +1,4 @@
-# InjectMyau
+# InjectMyau But Just Vietnamese servers
 
 Myau for Minecraft 1.8.9, loaded into a game that is already running instead of installed as a mod.
 
@@ -7,6 +7,8 @@ and Lunar ship their own closed clients, and neither has a mods folder you can d
 An injector does not need one. Start the game, press a button, and the client is inside it.
 
 Forge still works too — the same build runs there, and that is the easiest place to develop against.
+
+The Hypixel support will not be update because i dont have a pernament minecraft account :V
 
 ![Preview](OpenMyau-Inject/images/image2.png)
 
