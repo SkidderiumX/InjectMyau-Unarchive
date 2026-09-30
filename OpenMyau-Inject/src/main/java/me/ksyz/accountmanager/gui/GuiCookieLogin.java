@@ -1,250 +1,236 @@
 package me.ksyz.accountmanager.gui;
 
-import me.ksyz.accountmanager.auth.SessionManager;
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.UIManager;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import me.ksyz.accountmanager.auth.cookie.CookieAuth;
 import me.ksyz.accountmanager.auth.cookie.CookieJar;
+import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.client.gui.ScaledResolution;
 import org.lwjgl.input.Keyboard;
 
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.UIManager;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import java.io.File;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
-
+/*
+ * This file is derived from https://github.com/ksyzov/AccountManager.
+ * Originally licensed under the GNU LGPL.
+ *
+ * This modified version is licensed under the GNU GPL v3.
+ */
 public class GuiCookieLogin extends GuiScreen {
-    private static final int BUTTON_PASTE = 900;
-    private static final int BUTTON_FILE = 901;
+  private final GuiScreen previousScreen;
 
-    private final GuiScreen previousScreen;
-    private GuiTextField cookieField = null;
-    private GuiButton pasteButton = null;
-    private GuiButton fileButton = null;
-    private String status = null;
-    private String cause = null;
-    private ExecutorService executor = null;
-    private CompletableFuture<Void> task = null;
-    private volatile File pendingFile = null;
-    private volatile boolean chooserOpen = false;
-    private volatile boolean success = false;
+  private GuiButton chooseButton = null;
+  private String status = null;
+  private String cause = null;
+  private String selectedFile = null;
+  private volatile boolean chooserOpen = false;
+  private ExecutorService executor = null;
+  private volatile CompletableFuture<Void> task = null;
+  private volatile boolean success = false;
 
-    public GuiCookieLogin(GuiScreen previousScreen) {
-        this.previousScreen = previousScreen;
+  public GuiCookieLogin(GuiScreen previousScreen) {
+    this.previousScreen = previousScreen;
+  }
+
+  @Override
+  public void initGui() {
+    buttonList.clear();
+    Keyboard.enableRepeatEvents(true);
+    if (executor == null) {
+      executor = Executors.newSingleThreadExecutor();
+    }
+    buttonList.add(
+        chooseButton =
+            new GuiButton(998, width / 2 - 100, height / 2, 200, 20, "Choose Cookie File..."));
+  }
+
+  @Override
+  public void onGuiClosed() {
+    Keyboard.enableRepeatEvents(false);
+    if (task != null && !task.isDone()) {
+      task.cancel(true);
+    }
+    if (executor != null) {
+      executor.shutdownNow();
+    }
+  }
+
+  @Override
+  public void updateScreen() {
+    // Disable the button while the chooser or an auth attempt is running.
+    if (chooseButton != null) {
+      chooseButton.enabled = !chooserOpen && (task == null || task.isDone());
+    }
+    if (success) {
+      success = false;
+      mc.displayGuiScreen(
+          new GuiAccountManager(
+              previousScreen,
+              new Notification(
+                  TextFormatting.translate(
+                      String.format(
+                          "&aSuccessful login! (%s)&r", SessionManager.get().getUsername())),
+                  5000L)));
+    }
+  }
+
+  @Override
+  public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    drawDefaultBackground();
+    super.drawScreen(mouseX, mouseY, partialTicks);
+
+    drawCenteredString(
+        fontRendererObj,
+        "Cookie Login",
+        width / 2,
+        height / 2 - fontRendererObj.FONT_HEIGHT / 2 - fontRendererObj.FONT_HEIGHT * 3 - 6,
+        11184810);
+
+    String info =
+        status != null ? status : "&7Choose an exported cookies file (Netscape .txt or JSON).&r";
+    drawCenteredString(
+        fontRendererObj,
+        TextFormatting.translate(info),
+        width / 2,
+        height / 2 - fontRendererObj.FONT_HEIGHT / 2 - fontRendererObj.FONT_HEIGHT - 8,
+        -1);
+
+    if (selectedFile != null) {
+      drawCenteredString(
+          fontRendererObj,
+          TextFormatting.translate(String.format("&8File: &7%s&r", selectedFile)),
+          width / 2,
+          height / 2 + 26,
+          -1);
     }
 
-    @Override
-    public void initGui() {
-        buttonList.clear();
-        Keyboard.enableRepeatEvents(true);
-        ScaledResolution sr = new ScaledResolution(mc);
-        cookieField = new GuiTextField(
-                1, mc.fontRendererObj, sr.getScaledWidth() / 2 - 100, sr.getScaledHeight() / 2 - 6, 200, 20
-        );
-        cookieField.setMaxStringLength(32767);
-        cookieField.setFocused(true);
-        buttonList.add(pasteButton = new GuiButton(
-                BUTTON_PASTE, sr.getScaledWidth() / 2 - 100, sr.getScaledHeight() / 2 + 20, 200, 20, "Login with pasted cookies"
-        ));
-        buttonList.add(fileButton = new GuiButton(
-                BUTTON_FILE, sr.getScaledWidth() / 2 - 100, sr.getScaledHeight() / 2 + 44, 200, 20, "Open cookie file..."
-        ));
-        if (status == null) {
-            status = "&7Paste a cookie string or open an exported cookie file&r";
-        }
+    if (cause != null) {
+      String causeText = TextFormatting.translate(cause);
+      Gui.drawRect(
+          0,
+          height - 2 - fontRendererObj.FONT_HEIGHT - 3,
+          3 + mc.fontRendererObj.getStringWidth(causeText) + 3,
+          height,
+          0x64000000);
+      drawString(fontRendererObj, causeText, 3, height - 2 - fontRendererObj.FONT_HEIGHT, -1);
     }
+  }
 
-    @Override
-    public void onGuiClosed() {
-        Keyboard.enableRepeatEvents(false);
-        if (task != null && !task.isDone()) {
-            task.cancel(true);
-            if (executor != null) {
-                executor.shutdownNow();
-            }
-        }
+  @Override
+  protected void keyTyped(char typedChar, int keyCode) {
+    if (keyCode == Keyboard.KEY_ESCAPE) {
+      if (!chooserOpen && (task == null || task.isDone())) {
+        mc.displayGuiScreen(previousScreen);
+      }
     }
+  }
 
-    @Override
-    public void updateScreen() {
-        if (cookieField != null) {
-            cookieField.updateCursorCounter();
-        }
-        File file = pendingFile;
-        if (file != null) {
-            pendingFile = null;
-            startFromFile(file);
-        }
-        if (success) {
-            success = false;
-            mc.displayGuiScreen(new GuiAccountManager(
-                    previousScreen,
-                    new Notification(TextFormatting.translate(String.format(
-                            "&aSuccessful login! (%s)&r", SessionManager.get().getUsername()
-                    )), 5000L)
-            ));
-        }
+  @Override
+  protected void actionPerformed(GuiButton button) {
+    if (button == null || !button.enabled) {
+      return;
     }
-
-    @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        boolean idle = task == null || task.isDone();
-        if (pasteButton != null) {
-            pasteButton.enabled = idle && !chooserOpen;
-        }
-        if (fileButton != null) {
-            fileButton.enabled = idle && !chooserOpen;
-        }
-        drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
-        drawCenteredString(
-                fontRendererObj, "Cookie Login",
-                width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2 - fontRendererObj.FONT_HEIGHT * 2 - 14, 11184810
-        );
-        cookieField.drawTextBox();
-        if (status != null) {
-            drawCenteredString(
-                    fontRendererObj, TextFormatting.translate(status),
-                    width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2 - 20, -1
-            );
-        }
-        if (cause != null) {
-            String causeText = TextFormatting.translate(cause);
-            Gui.drawRect(
-                    0, height - 2 - fontRendererObj.FONT_HEIGHT - 3,
-                    3 + mc.fontRendererObj.getStringWidth(causeText) + 3, height,
-                    0x64000000
-            );
-            drawString(fontRendererObj, causeText, 3, height - 2 - fontRendererObj.FONT_HEIGHT, -1);
-        }
+    if (button.id == 998) {
+      openFileChooser();
     }
+  }
 
-    @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws java.io.IOException {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
-        cookieField.mouseClicked(mouseX, mouseY, mouseButton);
+  /**
+   * Opens a native file chooser on a background thread (so the render loop is not blocked), then
+   * kicks off the cookie login once a file is picked.
+   */
+  private void openFileChooser() {
+    if (chooserOpen || (task != null && !task.isDone())) {
+      return;
     }
+    chooserOpen = true;
+    cause = null;
+    status = "&7Opening file chooser...&r";
 
-    @Override
-    protected void keyTyped(char typedChar, int keyCode) {
-        cookieField.textboxKeyTyped(typedChar, keyCode);
-        if (keyCode == Keyboard.KEY_ESCAPE) {
-            if (task == null || task.isDone()) {
-                mc.displayGuiScreen(previousScreen);
-            }
-        }
-    }
-
-    @Override
-    protected void actionPerformed(GuiButton button) {
-        if (button == null || !button.enabled) {
-            return;
-        }
-        if (button.id == BUTTON_PASTE) {
-            startFromContent(cookieField.getText());
-        } else if (button.id == BUTTON_FILE) {
-            openFileChooser();
-        }
-    }
-
-    private void openFileChooser() {
-        chooserOpen = true;
-        status = "&7Opening the file picker...&r";
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
+    Thread thread =
+        new Thread(
+            () -> {
+              File chosen = null;
+              try {
                 try {
-                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                  UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
                 } catch (Exception ignored) {
+                  //
                 }
-                JFrame owner = null;
-                try {
-                    owner = new JFrame();
-                    owner.setUndecorated(true);
-                    owner.setAlwaysOnTop(true);
-                    owner.setSize(1, 1);
-                    owner.setLocationRelativeTo(null);
-                    owner.setVisible(true);
-                    JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.home"), "Downloads"));
-                    chooser.setDialogTitle("Select a cookie file");
-                    chooser.setFileFilter(new FileNameExtensionFilter(
-                            "Cookie files (*.txt, *.json, *.cookies)", "txt", "json", "cookies"
-                    ));
-                    int result = chooser.showOpenDialog(owner);
-                    if (result == JFileChooser.APPROVE_OPTION && chooser.getSelectedFile() != null) {
-                        pendingFile = chooser.getSelectedFile();
-                    } else {
-                        status = "&eFile selection was cancelled.&r";
-                    }
-                } catch (Throwable t) {
-                    status = "&cCould not open the file picker: " + t.getMessage() + "&r";
-                } finally {
-                    if (owner != null) {
-                        owner.dispose();
-                    }
-                    chooserOpen = false;
+                JFileChooser chooser = new JFileChooser();
+                chooser.setDialogTitle("Select your exported cookies file");
+                chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                chooser.setFileFilter(
+                    new FileNameExtensionFilter("Cookie files (*.txt, *.json)", "txt", "json"));
+                chooser.setAcceptAllFileFilterUsed(true);
+
+                JFrame parent = new JFrame();
+                parent.setAlwaysOnTop(true);
+                parent.setLocationRelativeTo(null);
+                int result = chooser.showOpenDialog(parent);
+                parent.dispose();
+                if (result == JFileChooser.APPROVE_OPTION) {
+                  chosen = chooser.getSelectedFile();
                 }
-            }
-        }, "cookie-file-chooser");
-        thread.setDaemon(true);
-        thread.start();
+              } catch (Throwable t) {
+                status = String.format("&cFile chooser failed: %s&r", t.getMessage());
+              } finally {
+                chooserOpen = false;
+              }
+
+              if (chosen != null) {
+                startLogin(chosen);
+              } else if (status != null && status.contains("Opening")) {
+                status = "&7No file selected.&r";
+              }
+            },
+            "Cookie File Chooser");
+    thread.setDaemon(true);
+    thread.start();
+  }
+
+  private void startLogin(File file) {
+    if (task != null && !task.isDone()) {
+      return;
     }
 
-    private void startFromFile(File file) {
-        try {
-            start(CookieAuth.parseFile(file));
-        } catch (Exception e) {
-            status = "&cCould not read the cookie file&r";
-            cause = "&c" + e.getMessage() + "&r";
-        }
+    CookieJar cookies;
+    try {
+      cookies = CookieAuth.parseFile(file);
+    } catch (Exception e) {
+      status = String.format("&cCould not read file: %s&r", e.getMessage());
+      return;
+    }
+    if (cookies.isEmpty()) {
+      status = "&cNo usable cookies were found in that file.&r";
+      return;
     }
 
-    private void startFromContent(String content) {
-        if (content == null || content.trim().isEmpty()) {
-            status = "&cPaste a cookie string first, or open a cookie file&r";
-            return;
-        }
-        start(CookieAuth.parseContent(content));
-    }
-
-    private void start(CookieJar jar) {
-        if (task != null && !task.isDone()) {
-            return;
-        }
-        if (executor == null) {
-            executor = Executors.newSingleThreadExecutor();
-        }
-        cause = null;
-        status = "&7Reading cookies...&r";
-        task = CookieAuth.addAccount(jar, executor, new Consumer<String>() {
-            @Override
-            public void accept(String message) {
-                status = message;
-            }
-        }).thenRun(new Runnable() {
-            @Override
-            public void run() {
-                status = null;
-                success = true;
-            }
-        }).exceptionally(new java.util.function.Function<Throwable, Void>() {
-            @Override
-            public Void apply(Throwable error) {
-                status = String.format("&c%s&r", error.getMessage());
-                if (error.getCause() != null && error.getCause().getMessage() != null) {
-                    cause = String.format("&c%s&r", error.getCause().getMessage());
-                }
-                return null;
-            }
-        });
-    }
+    selectedFile = file.getName();
+    cause = null;
+    status = "&fAuthenticating with cookies...&r";
+    task =
+        CookieAuth.addAccount(cookies, executor, message -> status = message)
+            .thenRun(
+                () -> {
+                  status = null;
+                  success = true;
+                })
+            .exceptionally(
+                error -> {
+                  Throwable failure = error.getCause() == null ? error : error.getCause();
+                  status = String.format("&c%s&r", failure.getMessage());
+                  cause = failure.getCause() == null ? null : failure.getCause().getMessage();
+                  task = null;
+                  return null;
+                });
+  }
 }

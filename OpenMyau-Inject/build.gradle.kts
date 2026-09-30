@@ -1,6 +1,7 @@
 import org.apache.commons.lang3.SystemUtils
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Properties
 plugins {
     idea
     java
@@ -34,10 +35,24 @@ fun writeCounter(key: String, value: Int) {
 }
 
 val buildDate: String = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
+
+// Per-day build counter (e.g., 260930+67 = 67th build of Sep 30, 2026)
+val buildCountFile = file("build-count.properties")
+val today = LocalDate.now().toString()
+var buildCount = 1
+if (buildCountFile.exists()) {
+    val props = Properties()
+    buildCountFile.inputStream().use { props.load(it) }
+    val lastDate = props.getProperty("lastBuildDate", "")
+    val lastCount = props.getProperty("buildCount", "0").toIntOrNull() ?: 0
+    buildCount = if (lastDate == today) lastCount + 1 else 1
+}
+buildCountFile.writeText("lastBuildDate=$today\nbuildCount=$buildCount\n")
+
 val buildMajor: Int = readCounter(majorKey, 1)
 val buildMinor: Int = readCounter(minorKey, 0)
 
-version = "$buildDate-$channelName.v$buildMajor.$buildMinor"
+version = "$buildDate+$buildCount"
 
 if (releaseBuild) {
     writeCounter(minorKey, buildMinor + 1)
@@ -47,7 +62,7 @@ val modid: String by project
 val jarName: String by project
 val transformerFile = file("src/main/resources/accesstransformer.cfg")
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 }
 loom {
     log4jConfigs.from(file("log4j2.xml"))
@@ -84,6 +99,7 @@ repositories {
     mavenCentral()
     maven("https://repo.spongepowered.org/maven/")
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
+    maven("https://repo.viaversion.com/")
 }
 val shadowImpl: Configuration by configurations.creating {
     configurations.implementation.get().extendsFrom(this)
@@ -103,6 +119,7 @@ dependencies {
 }
 tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
+    options.release.set(8)
 }
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(jarName)
@@ -194,6 +211,27 @@ fun buildNative(outputName: String) {
         built.delete()
     }
     println("output: $target")
+
+    // Copy to release folder named with date+count format
+    val releaseDir = file("release/$buildDate+$buildCount")
+    releaseDir.mkdirs()
+    copy {
+        from(tasks.shadowJar.get().archiveFile)
+        into(releaseDir)
+    }
+    copy {
+        from(target)
+        into(releaseDir)
+    }
+    copy {
+        from(File(nativesBuildDir, "Release/myau_loader.exe"))
+        into(releaseDir)
+    }
+    copy {
+        from(File(nativesBuildDir, "Release/myau_loader_local.exe"))
+        into(releaseDir)
+    }
+    println("Released to: $releaseDir")
 }
 
 tasks.register("buildDll") {
