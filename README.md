@@ -10,7 +10,6 @@ Forge still works too — the same build runs there, and that is the easiest pla
 
 The Hypixel support will not be update because i dont have a pernament minecraft account :V
 
-![Preview](OpenMyau-Inject/images/image2.png)
 
 ## Layout
 
