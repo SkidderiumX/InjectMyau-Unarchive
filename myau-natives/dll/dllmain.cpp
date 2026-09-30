@@ -566,6 +566,10 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (GetTempPathW(MAX_PATH, tempDir)) {
         g_logPath = std::wstring(tempDir) + L"myau-native.log";
     }
-    CreateThread(nullptr, 0, bootstrap, nullptr, 0, nullptr);
+    HANDLE thread = CreateThread(nullptr, 0, bootstrap, nullptr, 0, nullptr);
+    if (!thread) {
+        return FALSE;
+    }
+    CloseHandle(thread);
     return TRUE;
 }

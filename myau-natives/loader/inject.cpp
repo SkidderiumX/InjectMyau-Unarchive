@@ -20,15 +20,23 @@ std::wstring format(const wchar_t *pattern, ...) {
     return buffer;
 }
 
-bool is64Bit(DWORD pid) {
+bool is64Bit(DWORD pid, bool &targetIs64Bit, DWORD &error) {
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
     if (!process) {
-        return true;
+        error = GetLastError();
+        return false;
     }
     BOOL wow64 = FALSE;
-    IsWow64Process(process, &wow64);
+    BOOL queried = IsWow64Process(process, &wow64);
+    if (!queried) {
+        error = GetLastError();
+    }
     CloseHandle(process);
-    return !wow64;
+    if (!queried) {
+        return false;
+    }
+    targetIs64Bit = !wow64;
+    return true;
 }
 
 bool inject(DWORD pid, const std::wstring &dllPath, const Logger &log, const Logger &debug) {
@@ -71,9 +79,26 @@ bool inject(DWORD pid, const std::wstring &dllPath, const Logger &log, const Log
         return false;
     }
     debug(format(L"remote thread %p started, waiting", (void *)thread));
-    WaitForSingleObject(thread, 15000);
+    DWORD wait = WaitForSingleObject(thread, 15000);
+    if (wait != WAIT_OBJECT_0) {
+        if (wait == WAIT_TIMEOUT) {
+            log(L"LoadLibraryW did not finish within 15 seconds; injection status is unknown.");
+        } else {
+            log(format(L"waiting for LoadLibraryW failed (error %lu)", GetLastError()));
+        }
+        // The remote thread may still be reading this path; the target reclaims it on exit.
+        CloseHandle(thread);
+        CloseHandle(process);
+        return false;
+    }
     DWORD result = 0;
-    GetExitCodeThread(thread, &result);
+    if (!GetExitCodeThread(thread, &result)) {
+        log(format(L"could not read LoadLibraryW result (error %lu)", GetLastError()));
+        CloseHandle(thread);
+        VirtualFreeEx(process, remote, 0, MEM_RELEASE);
+        CloseHandle(process);
+        return false;
+    }
     debug(format(L"LoadLibraryW returned module 0x%08lx in the target", result));
     CloseHandle(thread);
     VirtualFreeEx(process, remote, 0, MEM_RELEASE);
@@ -266,7 +291,14 @@ bool runInjection(const void *dllBytes, size_t dllSize,
     debug(format(L"payload: %zu bytes of dll, jar %s", dllSize,
                  jarSize == 0 ? L"embedded" : L"separate"));
     debug(format(L"checking architecture of pid %lu", pid));
-    if (!is64Bit(pid)) {
+    bool targetIs64Bit = false;
+    DWORD architectureError = ERROR_SUCCESS;
+    if (!is64Bit(pid, targetIs64Bit, architectureError)) {
+        log(format(L"cannot determine the architecture of process %lu (error %lu)",
+                   pid, architectureError));
+        return false;
+    }
+    if (!targetIs64Bit) {
         log(format(L"process %lu is 32-bit and this DLL is x64 -- they cannot mix.", pid));
         return false;
     }
