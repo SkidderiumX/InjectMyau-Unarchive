@@ -113,71 +113,89 @@ public class ESP extends Module {
                 if (this.mode.getValue() == 3) {
                     GlStateManager.pushMatrix();
                     GlStateManager.pushAttrib();
-                    if (this.framebuffer == null) {
-                        this.framebuffer = new Framebuffer(mc.displayWidth, mc.displayHeight, false);
-                    }
-                    this.framebuffer.bindFramebuffer(false);
-                    AccessorEntityRenderer.callSetupCameraTransform(mc.entityRenderer, event.getPartialTicks(), 0);
                     boolean shadow = mc.gameSettings.entityShadows;
-                    mc.gameSettings.entityShadows = false;
-                    this.outline = false;
-                    this.glow = false;
-                    this.glowShader.use();
-                    for (EntityPlayer player : renderedEntities) {
-                        Color entityColor = this.getEntityColor(player);
-                        this.glowShader.W(entityColor);
-                        boolean invisible = player.isInvisible();
-                        player.setInvisible(false);
-                        mc.getRenderManager().renderEntityStatic(player, event.getPartialTicks(), true);
-                        player.setInvisible(invisible);
+                    try {
+                        if (this.framebuffer == null) {
+                            this.framebuffer = new Framebuffer(mc.displayWidth, mc.displayHeight, false);
+                        }
+                        this.framebuffer.bindFramebuffer(false);
+                        AccessorEntityRenderer.callSetupCameraTransform(mc.entityRenderer, event.getPartialTicks(), 0);
+                        mc.gameSettings.entityShadows = false;
+                        this.outline = false;
+                        this.glow = false;
+                        this.glowShader.use();
+                        for (EntityPlayer player : renderedEntities) {
+                            Color entityColor = this.getEntityColor(player);
+                            this.glowShader.W(entityColor);
+                            boolean invisible = player.isInvisible();
+                            player.setInvisible(false);
+                            try {
+                                mc.getRenderManager().renderEntityStatic(player, event.getPartialTicks(), true);
+                            } finally {
+                                player.setInvisible(invisible);
+                            }
+                        }
+                        this.glowShader.stop();
+                        this.glow = true;
+                        this.outline = true;
+                        mc.gameSettings.entityShadows = shadow;
+                        mc.entityRenderer.disableLightmap();
+                        mc.entityRenderer.setupOverlayRendering();
+                        mc.getFramebuffer().bindFramebuffer(false);
+                        this.outlineRenderer.use();
+                        RenderUtil.drawFramebuffer(this.framebuffer);
+                        this.outlineRenderer.stop();
+                        this.framebuffer.framebufferClear();
+                        mc.getFramebuffer().bindFramebuffer(false);
+                    } finally {
+                        this.glowShader.stop();
+                        this.outlineRenderer.stop();
+                        this.glow = true;
+                        this.outline = true;
+                        mc.gameSettings.entityShadows = shadow;
+                        mc.entityRenderer.setupOverlayRendering();
+                        mc.getFramebuffer().bindFramebuffer(false);
+                        GlStateManager.resetColor();
+                        GlStateManager.popAttrib();
+                        GlStateManager.popMatrix();
                     }
-                    this.glowShader.stop();
-                    this.glow = true;
-                    this.outline = true;
-                    mc.gameSettings.entityShadows = shadow;
-                    mc.entityRenderer.disableLightmap();
-                    mc.entityRenderer.setupOverlayRendering();
-                    mc.getFramebuffer().bindFramebuffer(false);
-                    this.outlineRenderer.use();
-                    RenderUtil.drawFramebuffer(this.framebuffer);
-                    this.outlineRenderer.stop();
-                    this.framebuffer.framebufferClear();
-                    mc.getFramebuffer().bindFramebuffer(false);
-                    GlStateManager.popAttrib();
-                    GlStateManager.popMatrix();
                 }
                 if (this.mode.getValue() == 1 || this.healthBar.getValue() == 1) {
                     RenderUtil.enableRenderState();
                     double scaleFactor = new ScaledResolution(mc).getScaleFactor();
                     double scale = scaleFactor / Math.pow(scaleFactor, 2.0);
                     GlStateManager.pushMatrix();
-                    GlStateManager.scale(scale, scale, scale);
-                    for (EntityPlayer player : renderedEntities) {
-                        AccessorEntityRenderer.callSetupCameraTransform(mc.entityRenderer, event.getPartialTicks(), 0);
-                        Vector4d screenPosition = RenderUtil.projectToScreen(player, scaleFactor);
-                        mc.entityRenderer.setupOverlayRendering();
-                        if (screenPosition != null) {
-                            float x = (float) screenPosition.x;
-                            float y = (float) screenPosition.y;
-                            float z = (float) screenPosition.z;
-                            float w = (float) screenPosition.w;
-                            if (this.mode.getValue() == 1) {
-                                int color = this.getEntityColor(player).getRGB();
-                                RenderUtil.drawOutlineRect(x, y, z, w, 3.0F, 0, (color & 16579836) >> 2 | color & 0xFF000000);
-                                RenderUtil.drawOutlineRect(x, y, z, w, 1.5F, 0, color);
-                            }
-                            if (this.healthBar.getValue() == 1) {
-                                float heal = player.getHealth() + player.getAbsorptionAmount();
-                                float percent = Math.min(Math.max(heal / player.getMaxHealth(), 0.0F), 1.0F);
-                                float box = (z - x) * 0.08F;
-                                Color healthColor = ColorUtil.getHealthBlend(percent);
-                                RenderUtil.drawLine(x - box, y, x - box, w, 3.0F, ColorUtil.darker(healthColor, 0.2F).getRGB());
-                                RenderUtil.drawLine(x - box, w, x - box, w + (y - w) * percent, 1.5F, healthColor.getRGB());
+                    try {
+                        GlStateManager.scale(scale, scale, scale);
+                        for (EntityPlayer player : renderedEntities) {
+                            AccessorEntityRenderer.callSetupCameraTransform(mc.entityRenderer, event.getPartialTicks(), 0);
+                            Vector4d screenPosition = RenderUtil.projectToScreen(player, scaleFactor);
+                            mc.entityRenderer.setupOverlayRendering();
+                            if (screenPosition != null) {
+                                float x = (float) screenPosition.x;
+                                float y = (float) screenPosition.y;
+                                float z = (float) screenPosition.z;
+                                float w = (float) screenPosition.w;
+                                if (this.mode.getValue() == 1) {
+                                    int color = this.getEntityColor(player).getRGB();
+                                    RenderUtil.drawOutlineRect(x, y, z, w, 3.0F, 0, (color & 16579836) >> 2 | color & 0xFF000000);
+                                    RenderUtil.drawOutlineRect(x, y, z, w, 1.5F, 0, color);
+                                }
+                                if (this.healthBar.getValue() == 1) {
+                                    float heal = player.getHealth() + player.getAbsorptionAmount();
+                                    float percent = Math.min(Math.max(heal / player.getMaxHealth(), 0.0F), 1.0F);
+                                    float box = (z - x) * 0.08F;
+                                    Color healthColor = ColorUtil.getHealthBlend(percent);
+                                    RenderUtil.drawLine(x - box, y, x - box, w, 3.0F, ColorUtil.darker(healthColor, 0.2F).getRGB());
+                                    RenderUtil.drawLine(x - box, w, x - box, w + (y - w) * percent, 1.5F, healthColor.getRGB());
+                                }
                             }
                         }
+                    } finally {
+                        GlStateManager.popMatrix();
+                        GlStateManager.resetColor();
+                        RenderUtil.disableRenderState();
                     }
-                    GlStateManager.popMatrix();
-                    RenderUtil.disableRenderState();
                 }
             }
         }
@@ -187,6 +205,7 @@ public class ESP extends Module {
     public void onRender(Render3DEvent event) {
         if (this.isEnabled() && (this.mode.getValue() == 2 || this.mode.getValue() == 4 || this.mode.getValue() == 5 || this.healthBar.getValue() == 2)) {
             RenderUtil.enableRenderState();
+            try {
             for (EntityPlayer player : TeamUtil.getLoadedEntitiesSorted().stream().filter(entity -> entity instanceof EntityPlayer && this.shouldRenderPlayer((EntityPlayer) entity)).map(EntityPlayer.class::cast).collect(Collectors.toList())) {
                 if (player.ignoreFrustumCheck || RenderUtil.isInViewFrustum(player.getEntityBoundingBox(), 0.1F)) {
                     if (this.mode.getValue() == 2) {
@@ -211,20 +230,26 @@ public class ESP extends Module {
                         double z = RenderUtil.lerpDouble(player.posZ, player.lastTickPosZ, event.getPartialTicks())
                                 - AccessorRenderManager.getRenderPosZ(mc.getRenderManager());
                         GlStateManager.pushMatrix();
-                        GlStateManager.translate(x, y, z);
-                        GlStateManager.rotate(mc.getRenderManager().playerViewY * -1.0F, 0.0F, 1.0F, 0.0F);
-                        float heal = player.getHealth() + player.getAbsorptionAmount();
-                        float percent = Math.min(Math.max(heal / player.getMaxHealth(), 0.0F), 1.0F);
-                        Color healthColor = ColorUtil.getHealthBlend(percent);
-                        float height = player.height + 0.2F;
-                        RenderUtil.drawRect3D(0.57250005F, -0.027500002F, 0.7275F, height + 0.027500002F, Color.black.getRGB());
-                        RenderUtil.drawRect3D(0.6F, 0.0F, 0.70000005F, height, Color.darkGray.getRGB());
-                        RenderUtil.drawRect3D(0.6F, 0.0F, 0.70000005F, height * percent, healthColor.getRGB());
-                        GlStateManager.popMatrix();
+                        try {
+                            GlStateManager.translate(x, y, z);
+                            GlStateManager.rotate(mc.getRenderManager().playerViewY * -1.0F, 0.0F, 1.0F, 0.0F);
+                            float heal = player.getHealth() + player.getAbsorptionAmount();
+                            float percent = Math.min(Math.max(heal / player.getMaxHealth(), 0.0F), 1.0F);
+                            Color healthColor = ColorUtil.getHealthBlend(percent);
+                            float height = player.height + 0.2F;
+                            RenderUtil.drawRect3D(0.57250005F, -0.027500002F, 0.7275F, height + 0.027500002F, Color.black.getRGB());
+                            RenderUtil.drawRect3D(0.6F, 0.0F, 0.70000005F, height, Color.darkGray.getRGB());
+                            RenderUtil.drawRect3D(0.6F, 0.0F, 0.70000005F, height * percent, healthColor.getRGB());
+                        } finally {
+                            GlStateManager.popMatrix();
+                        }
                     }
                 }
             }
-            RenderUtil.disableRenderState();
+            } finally {
+                GlStateManager.resetColor();
+                RenderUtil.disableRenderState();
+            }
         }
     }
 }

@@ -1,0 +1,13 @@
+Beta-261013+4
+Added Command Chat prefix selector (. / # / @)
+Added Throw Pearl mode to MCF
+Beta-261013+3
+Added Reduce (takes over KeepSprint on attack)
+Added Client category (Click Gui, Theme)
+Beta-261013+2
+Added Jump Reset
+Beta-261013+1
+Added BHop (Strafe, Ground, Glide, 7/8/9 tick modes)
+Added AutoPlace
+Beta-261012+4
+Fixed ClickGUI failing to open with module unregistered spam

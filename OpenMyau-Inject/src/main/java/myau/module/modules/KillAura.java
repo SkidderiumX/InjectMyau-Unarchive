@@ -304,7 +304,10 @@ public class KillAura extends Module {
                     }
                     KeepSprint keepSprint =
                             (KeepSprint) Myau.moduleManager.modules.get(KeepSprint.class);
-                    if (keepSprint != null) {
+                    Reduce reduce = (Reduce) Myau.moduleManager.modules.get(Reduce.class);
+                    if (reduce != null && reduce.isEnabled()) {
+                        Reduce.reduce(this.target.getEntity());
+                    } else if (keepSprint != null) {
                         keepSprint.confirmAttack();
                     }
                     AccessorPlayerControllerMP.callSyncCurrentPlayItem(mc.playerController);

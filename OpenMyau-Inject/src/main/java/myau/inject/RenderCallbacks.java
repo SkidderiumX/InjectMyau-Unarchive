@@ -1,6 +1,10 @@
 package myau.inject;
 
 import myau.Myau;
+import myau.access.AccessorEntityRenderer;
+import myau.access.AccessorItemRenderer;
+import myau.access.AccessorMinecraft;
+import myau.config.AnimationConfig;
 import myau.event.EventManager;
 import myau.event.types.EventType;
 import myau.events.RenderLivingEvent;
@@ -10,6 +14,8 @@ import myau.module.modules.ESP;
 import myau.module.modules.NameTags;
 import myau.module.modules.NickHider;
 import myau.module.modules.Sprint;
+import myau.util.ItemAnimations;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -154,7 +160,6 @@ public final class RenderCallbacks {
     public static void fovModifierPre(Object owner) {
         fovOwner = owner;
     }
-
     public static double fovAttributeValue(IAttributeInstance attribute) {
         double value = attribute.getAttributeValue();
         try {
@@ -168,5 +173,72 @@ public final class RenderCallbacks {
             Log.swallowed(swallowed);
         }
         return value;
+    }
+
+    public static void skipFirstPersonTransform(Object renderer, float f1, float f2) {
+        // Suppressed — applyFirstPersonTransforms replaces the vanilla call below.
+    }
+
+    public static void conditionalFirstPersonTransform(Object renderer, float f1, float f2) {
+        try {
+            if (!AnimationConfig.isEnabled()
+                    || !ItemAnimations.shouldApplyNormalAnimations(ItemAnimations.wrap(renderer))) {
+                AccessorItemRenderer.callTransformFirstPersonItem(renderer, f1, f2);
+            }
+        } catch (Throwable swallowed) {
+            Log.swallowed(swallowed);
+        }
+    }
+
+    public static void applyFirstPersonTransforms() {
+        try {
+            if (!AnimationConfig.isEnabled()) {
+                return;
+            }
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc == null || mc.entityRenderer == null) {
+                return;
+            }
+            Object renderer = AccessorEntityRenderer.getItemRenderer(mc.entityRenderer);
+            if (renderer == null) {
+                return;
+            }
+            ItemAnimations.applyFirstPersonTransforms(ItemAnimations.wrap(renderer),
+                    AccessorMinecraft.getTimer(mc).renderPartialTicks);
+        } catch (Throwable swallowed) {
+            Log.swallowed(swallowed);
+        }
+    }
+
+    public static void applyFirstPersonScale() {
+        try {
+            if (!AnimationConfig.isEnabled()) {
+                return;
+            }
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc == null || mc.entityRenderer == null) {
+                return;
+            }
+            Object renderer = AccessorEntityRenderer.getItemRenderer(mc.entityRenderer);
+            if (renderer == null) {
+                return;
+            }
+            ItemAnimations.applyFirstPersonScale(ItemAnimations.wrap(renderer),
+                    AccessorMinecraft.getTimer(mc).renderPartialTicks);
+        } catch (Throwable swallowed) {
+            Log.swallowed(swallowed);
+        }
+    }
+
+    public static int swingAnimationEnd(int original) {
+        try {
+            if (!AnimationConfig.isEnabled()) {
+                return original;
+            }
+            return ItemAnimations.swingAnimationEnd();
+        } catch (Throwable swallowed) {
+            Log.swallowed(swallowed);
+            return original;
+        }
     }
 }

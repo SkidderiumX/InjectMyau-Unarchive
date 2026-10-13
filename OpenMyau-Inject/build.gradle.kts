@@ -1,6 +1,7 @@
 import org.apache.commons.lang3.SystemUtils
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.io.IOException
 import java.util.Properties
 plugins {
     idea
@@ -17,52 +18,55 @@ val requestedTasks: String = gradle.startParameter.taskNames.joinToString(" ")
 val betaBuild: Boolean = requestedTasks.contains("buildBeta", ignoreCase = true)
 val releaseBuild: Boolean =
     betaBuild || requestedTasks.contains("buildLatest", ignoreCase = true)
-val channelName: String = if (betaBuild) "Beta" else "Latest"
-val majorKey: String = if (betaBuild) "betaMajor" else "latestMajor"
-val minorKey: String = if (betaBuild) "betaMinor" else "latestMinor"
-val propertiesFile = file("gradle.properties")
 
-fun readCounter(key: String, fallback: Int): Int =
-    (project.findProperty(key) as String?)?.trim()?.toIntOrNull() ?: fallback
+// Per-day build counters, one per channel (e.g., 261007+5 = 5th build of Oct 7, 2026).
+// Each channel resets to 1 when the day changes. Release builds consume the next
+// number; plain builds (buildDll) reuse the last number built today.
+val buildCountFile = file("build-count.properties")
+val today: String = LocalDate.now().toString()
+val countProps = Properties()
+if (buildCountFile.exists()) {
+    buildCountFile.inputStream().use { countProps.load(it) }
+}
 
-fun writeCounter(key: String, value: Int) {
-    val text = propertiesFile.readText()
-    val pattern = Regex("(?m)^[ \\t]*" + Regex.escape(key) + "[ \\t]*=.*$")
-    propertiesFile.writeText(
-        if (pattern.containsMatchIn(text)) pattern.replace(text, "$key = $value")
-        else text.trimEnd() + "\n$key = $value\n"
-    )
+fun storedCount(dateKey: String, countKey: String): Int =
+    if (countProps.getProperty(dateKey, "") == today) {
+        countProps.getProperty(countKey, "0").toIntOrNull() ?: 0
+    } else {
+        0
+    }
+
+fun consumeCount(dateKey: String, countKey: String): Int {
+    val next = storedCount(dateKey, countKey) + 1
+    countProps.setProperty(dateKey, today)
+    countProps.setProperty(countKey, next.toString())
+    buildCountFile.outputStream().use { countProps.store(it, null) }
+    return next
+}
+
+val releaseDateKey = "lastReleaseDate"
+val releaseCountKey = "releaseBuildCount"
+val betaDateKey = "lastBetaDate"
+val betaCountKey = "betaBuildCount"
+
+val buildCount: Int = if (releaseBuild) {
+    if (betaBuild) consumeCount(betaDateKey, betaCountKey)
+    else consumeCount(releaseDateKey, releaseCountKey)
+} else {
+    storedCount(releaseDateKey, releaseCountKey)
 }
 
 val buildDate: String = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
-
-// Per-day build counter (e.g., 260930+67 = 67th build of Sep 30, 2026)
-val buildCountFile = file("build-count.properties")
-val today = LocalDate.now().toString()
-var buildCount = 1
-if (buildCountFile.exists()) {
-    val props = Properties()
-    buildCountFile.inputStream().use { props.load(it) }
-    val lastDate = props.getProperty("lastBuildDate", "")
-    val lastCount = props.getProperty("buildCount", "0").toIntOrNull() ?: 0
-    buildCount = if (lastDate == today) lastCount + 1 else 1
-}
-buildCountFile.writeText("lastBuildDate=$today\nbuildCount=$buildCount\n")
-
-val buildMajor: Int = readCounter(majorKey, 1)
-val buildMinor: Int = readCounter(minorKey, 0)
-
-version = "$buildDate+$buildCount"
+version = if (betaBuild) "Beta-$buildDate+$buildCount" else "$buildDate+$buildCount"
 
 if (releaseBuild) {
-    writeCounter(minorKey, buildMinor + 1)
     println("myau build: $version")
 }
 val modid: String by project
 val jarName: String by project
 val transformerFile = file("src/main/resources/accesstransformer.cfg")
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 }
 loom {
     log4jConfigs.from(file("log4j2.xml"))
@@ -99,7 +103,6 @@ repositories {
     mavenCentral()
     maven("https://repo.spongepowered.org/maven/")
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
-    maven("https://repo.viaversion.com/")
 }
 val shadowImpl: Configuration by configurations.creating {
     configurations.implementation.get().extendsFrom(this)
@@ -119,7 +122,6 @@ dependencies {
 }
 tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
-    options.release.set(8)
 }
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(jarName)
@@ -199,7 +201,7 @@ fun latestJar(): File {
     return expected
 }
 
-fun buildNative(outputName: String) {
+fun buildNative(outputName: String, destDir: File) {
     val jar = latestJar()
     println("client jar: ${jar.name}")
     cmakeConfigure(listOf("-DCLIENT_JAR=${jar.invariantSeparatorsPath}"))
@@ -211,46 +213,60 @@ fun buildNative(outputName: String) {
         built.delete()
     }
     println("output: $target")
+    // Publish into <Channel>/<YYMMDD>/<version>/ so each day gets its own
+    // folder and every build its own child folder (e.g. Release/261007/261007+1).
+    val datedDir = File(destDir, "$buildDate/$version")
+    datedDir.mkdirs()
+    jar.copyTo(File(datedDir, jar.name), overwrite = true)
+    publishCopy(target, File(datedDir, target.name))
+    File(nativesBuildDir, "Release/myau_loader.exe").takeIf { it.isFile }
+        ?.let { publishCopy(it, File(datedDir, "myau_loader.exe")) }
+    File(nativesBuildDir, "Release/myau_loader_local.exe").takeIf { it.isFile }
+        ?.let { publishCopy(it, File(datedDir, "myau_loader_local.exe")) }
+    println("published to: ${datedDir.absolutePath}")
+}
 
-    // Copy to release folder named with date+count format
-    val releaseDir = file("release/$buildDate+$buildCount")
-    releaseDir.mkdirs()
-    copy {
-        from(tasks.shadowJar.get().archiveFile)
-        into(releaseDir)
+val releaseDir = file("../Release")
+val betaDir = file("../Beta")
+
+fun publishCopy(source: File, dest: File) {
+    var lastError: Throwable? = null
+    for (attempt in 1..5) {
+        try {
+            if (dest.exists() && !dest.delete()) {
+                throw IOException("destination is locked by another process")
+            }
+            source.copyTo(dest, overwrite = true)
+            return
+        } catch (e: Throwable) {
+            lastError = e
+            Thread.sleep(500L)
+        }
     }
-    copy {
-        from(target)
-        into(releaseDir)
-    }
-    copy {
-        from(File(nativesBuildDir, "Release/myau_loader.exe"))
-        into(releaseDir)
-    }
-    copy {
-        from(File(nativesBuildDir, "Release/myau_loader_local.exe"))
-        into(releaseDir)
-    }
-    println("Released to: $releaseDir")
+    throw GradleException(
+        "Could not publish ${dest.name} (file is likely in use - "
+            + "close the running loader/game and rebuild).",
+        lastError
+    )
 }
 
 tasks.register("buildDll") {
     group = "myau"
     description = "Builds myau_native.dll from the current jar without bumping the version."
     dependsOn(tasks.assemble)
-    doLast { buildNative("myau_native.dll") }
+    doLast { buildNative("myau_native.dll", releaseDir) }
 }
 
 tasks.register("buildLatest") {
     group = "myau"
     description = "Builds the Latest channel payload and bumps the version."
     dependsOn(tasks.assemble)
-    doLast { buildNative("myau_native.dll") }
+    doLast { buildNative("myau_native.dll", releaseDir) }
 }
 
 tasks.register("buildBeta") {
     group = "myau"
     description = "Builds the Beta channel payload and bumps the version."
     dependsOn(tasks.assemble)
-    doLast { buildNative("myau_native_beta.dll") }
+    doLast { buildNative("myau_native_beta.dll", betaDir) }
 }

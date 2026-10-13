@@ -3944,6 +3944,20 @@
         "srg": "field_175083_ad"
       }
     },
+    "net.minecraft.client.renderer.ItemRenderer": {
+      "equippedProgress": {
+        "notch": "e",
+        "srg": "field_78454_c"
+      },
+      "prevEquippedProgress": {
+        "notch": "f",
+        "srg": "field_78451_d"
+      },
+      "itemToRender": {
+        "notch": "d",
+        "srg": "field_78453_b"
+      }
+    },
     "net.minecraft.client.renderer.WorldRenderer": {
       "byteBuffer": {
         "notch": "a",
@@ -7910,6 +7924,18 @@
       "renderItemInFirstPerson": {
         "notch": "a",
         "srg": "func_78440_a"
+      },
+      "transformFirstPersonItem": {
+        "notch": "b",
+        "srg": "func_178096_b"
+      },
+      "doBlockTransformations": {
+        "notch": "d",
+        "srg": "func_178103_d"
+      },
+      "renderItem": {
+        "notch": "a",
+        "srg": "func_178099_a"
       }
     },
     "net.minecraft.client.renderer.WorldRenderer": {
