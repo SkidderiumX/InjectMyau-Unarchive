@@ -10,7 +10,7 @@ public enum Category {
     RENDER("Render"),
     PLAYER("Player"),
     MISC("Misc"),
-    THEME("Theme");
+    CLIENT("Client");
     private final String label;
     private ItemStack icon;
     private ItemStack activeIcon;
@@ -49,8 +49,8 @@ public enum Category {
             case PLAYER:
                 stack = new ItemStack(Items.golden_apple);
                 break;
-            case THEME:
-                stack = new ItemStack(Items.dye, 1, 4);
+            case CLIENT:
+                stack = new ItemStack(Items.compass);
                 break;
             default:
                 stack = new ItemStack(Items.clock);

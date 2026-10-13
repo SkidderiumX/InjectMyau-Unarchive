@@ -56,6 +56,28 @@ public final class Hooks {
                 .calls("itemInUseCountForRender",
                         "(Lnet/minecraft/entity/player/EntityPlayer;)I")
                 .in(RenderCallbacks.OWNER).optional().add();
+        HookRegistry.hook(ITEM_RENDERER, "renderItemInFirstPerson", "(F)V")
+                .at(Position.REPLACE_INVOKE)
+                .invoking(ITEM_RENDERER, "transformFirstPersonItem", "(FF)V").ordinal(2)
+                .calls("skipFirstPersonTransform", "(Ljava/lang/Object;FF)V")
+                .in(RenderCallbacks.OWNER).optional().add();
+        HookRegistry.hook(ITEM_RENDERER, "renderItemInFirstPerson", "(F)V")
+                .at(Position.REPLACE_INVOKE)
+                .invoking(ITEM_RENDERER, "transformFirstPersonItem", "(FF)V").ordinal(4)
+                .calls("conditionalFirstPersonTransform", "(Ljava/lang/Object;FF)V")
+                .in(RenderCallbacks.OWNER).optional().add();
+        HookRegistry.hook(ITEM_RENDERER, "renderItemInFirstPerson", "(F)V")
+                .at(Position.BEFORE_INVOKE)
+                .invoking(ITEM_RENDERER, "doBlockTransformations", "()V")
+                .calls("applyFirstPersonTransforms")
+                .in(RenderCallbacks.OWNER).optional().add();
+        HookRegistry.hook(ITEM_RENDERER, "renderItemInFirstPerson", "(F)V")
+                .at(Position.BEFORE_INVOKE)
+                .invoking(ITEM_RENDERER, "renderItem",
+                        "(Lnet/minecraft/entity/EntityLivingBase;Lnet/minecraft/item/ItemStack;"
+                                + "Lnet/minecraft/client/renderer/block/model/ItemCameraTransforms$TransformType;)V")
+                .calls("applyFirstPersonScale")
+                .in(RenderCallbacks.OWNER).optional().add();
         HookRegistry.hook(MINECRAFT, "runTick", V)
                 .at(Position.BEFORE_FIELD)
                 .field(MINECRAFT_GAME_SETTINGS, "chatVisibility",
@@ -265,7 +287,10 @@ public final class Hooks {
         HookRegistry.hook(LIVING, "jump", V).in(entity)
                 .at(Position.HEAD).args("this")
                 .calls("enterJump", "(Ljava/lang/Object;)V").add();
-        HookRegistry.hook(LIVING, "jump", V).in(entity)
+        HookRegistry.hook(LIVING, "getArmSwingAnimationEnd", "()I")
+                .at(Position.MODIFY_RETURN)
+                .calls("swingAnimationEnd", "(I)I")
+                .in(RenderCallbacks.OWNER).optional().add();        HookRegistry.hook(LIVING, "jump", V).in(entity)
                 .at(Position.MODIFY_STORE).storing("F").ordinal(0)
                 .calls("jumpYaw", "(F)F").add();
         HookRegistry.hook(LIVING, "moveEntityWithHeading", "(FF)V").in(entity)

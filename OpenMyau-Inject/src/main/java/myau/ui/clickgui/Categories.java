@@ -7,24 +7,28 @@ import myau.module.modules.Timer;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 
 public final class Categories {
-    private static final Map<Category, List<Module>> BY_CATEGORY = new EnumMap<Category, List<Module>>(Category.class);
     private Categories() {
     }
+
+    /**
+     * Always built fresh. The previous static cache kept the module instances from
+     * the first {@link myau.Myau} construction, so when the client was initialised a
+     * second time (a mods-folder load plus an injection, or a re-inject after an
+     * unload) the panels held stale instances and {@link #verifyComplete()} then
+     * rejected every module as "unregistered to click gui".
+     */
     public static List<Module> modulesOf(Category category) {
-        List<Module> modules = BY_CATEGORY.get(category);
-        if (modules == null) {
-            modules = build(category);
-            BY_CATEGORY.put(category, modules);
-        }
-        return modules;
+        return build(category);
     }
 
     public static void verifyComplete() {
+        if (Myau.moduleManager == null) {
+            throw new IllegalStateException(
+                    "the click gui was opened before the client finished starting");
+        }
         List<Module> listed = new ArrayList<Module>();
         for (Category category : Category.values()) {
             listed.addAll(modulesOf(category));
@@ -38,9 +42,6 @@ public final class Categories {
     private static List<Module> build(Category category) {
         List<Module> modules = new ArrayList<Module>();
         switch (category) {
-            case THEME:
-                add(modules, myau.module.modules.Theme.class);
-                break;
             case COMBAT:
                 add(modules, AimAssist.class);
                 add(modules, AutoClicker.class);
@@ -63,6 +64,8 @@ public final class Categories {
                 add(modules, Refill.class);
                 add(modules, HitSelect.class);
                 add(modules, AntiBot.class);
+                add(modules, JumpReset.class);
+                add(modules, Reduce.class);
                 break;
             case MOVEMENT:
                 add(modules, AntiAFK.class);
@@ -85,10 +88,11 @@ public final class Categories {
                 add(modules, InventoryMove.class);
                 add(modules, Jump45.class);
                 add(modules, SnapTap.class);
+                add(modules, BHop.class);
                 break;
             case RENDER:
-                add(modules, BlockCounter.class);
-                add(modules, FallView.class);
+                add(modules, Animations.class);
+                add(modules, BlockCounter.class);                add(modules, FallView.class);
                 add(modules, ESP.class);
                 add(modules, Chams.class);
                 add(modules, FullBright.class);
@@ -103,10 +107,14 @@ public final class Categories {
                 add(modules, ViewClip.class);
                 add(modules, NoHurtCam.class);
                 add(modules, HUD.class);
-                add(modules, GuiModule.class);
                 add(modules, ChestESP.class);
                 add(modules, Trajectories.class);
                 add(modules, Radar.class);
+                break;
+            case CLIENT:
+                add(modules, GuiModule.class);
+                add(modules, CommandChat.class);
+                add(modules, myau.module.modules.Theme.class);
                 break;
             case PLAYER:
                 add(modules, Clutch.class);
@@ -125,6 +133,7 @@ public final class Categories {
                 add(modules, MCF.class);
                 add(modules, AntiDebuff.class);
                 add(modules, Freecam.class);
+                add(modules, AutoPlace.class);
                 break;
             case MISC:
                 add(modules, UnInject.class);

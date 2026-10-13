@@ -206,7 +206,6 @@ std::wstring g_targetLauncher;
 
 void enterStage(Stage stage);
 DWORD WINAPI injectThread(LPVOID);
-void startInjection();
 
 std::wstring format(const wchar_t *pattern, ...) {
     wchar_t buffer[512];
@@ -992,7 +991,7 @@ void refreshTarget() {
         g_armed = false;
         addLine(L"game detected -- injecting", false, false);
         enterStage(Stage::WORKING);
-        startInjection();
+        CloseHandle(CreateThread(nullptr, 0, injectThread, nullptr, 0, nullptr));
         return;
     }
     RECT box = buttonRect();
@@ -1121,16 +1120,6 @@ DWORD WINAPI injectThread(LPVOID) {
     postProgress(injected ? 1.0 : DOWNLOAD_SHARE);
     PostMessageW(g_window, WM_INJECT_DONE, injected ? TRUE : FALSE, 0);
     return 0;
-}
-void startInjection() {
-    HANDLE thread = CreateThread(nullptr, 0, injectThread, nullptr, 0, nullptr);
-    if (!thread) {
-        addLine(format(L"could not start injection thread (error %lu)", GetLastError()),
-                false, false);
-        enterStage(Stage::DONE_FAILED);
-        return;
-    }
-    CloseHandle(thread);
 }
 std::vector<std::wstring> parseChangelog(const std::vector<BYTE> &bytes) {
     std::vector<std::wstring> lines;
@@ -1464,7 +1453,7 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                 }
                 if (g_targetPid != 0) {
                     enterStage(Stage::WORKING);
-                    startInjection();
+                    CloseHandle(CreateThread(nullptr, 0, injectThread, nullptr, 0, nullptr));
                 } else {
                     g_armed = true;
                     addLine(L"waiting for the game to start...", false, false);

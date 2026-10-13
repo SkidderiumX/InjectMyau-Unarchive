@@ -41,7 +41,9 @@ public class CommandManager {
         if (string == null || string.length() < 2) {
             return false;
         } else {
-            return string.charAt(0) == '.' && Character.isLetterOrDigit(string.charAt(1));
+            String identifier = myau.module.modules.CommandChat.getIdentifier();
+            return string.charAt(0) == identifier.charAt(0)
+                    && Character.isLetterOrDigit(string.charAt(1));
         }
     }
 
