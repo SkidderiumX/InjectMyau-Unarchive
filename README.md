@@ -46,7 +46,7 @@ cd OpenMyau-Inject
 ./gradlew build
 ```
 
-The jar lands in `OpenMyau-Inject/build/libs/`. On Windows use `gradlew.bat`.
+The jar lands in `Beta\YYMMDD\Beta-YYMMDD+BUILDCOUNT`. On Windows use `gradlew.bat`.
 
 ### 2. The loader
 
