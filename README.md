@@ -22,7 +22,7 @@ InjectMyau/
 
 The two build separately and meet once: the loader embeds the client jar as a resource, so the
 Gradle build has to run first and the CMake build picks its output up from
-`../OpenMyau-Inject/build/libs`.
+`../realease/YYMMDD/YYMMDD+BuildCount`.
 
 ## Requirements
 
@@ -46,7 +46,7 @@ cd OpenMyau-Inject
 ./gradlew build
 ```
 
-The jar lands in `OpenMyau-Inject/build/libs/`. On Windows use `gradlew.bat`.
+The jar lands in `../realease/YYMMDD/YYMMDD+BuildCount`. On Windows use `gradlew.bat`.
 
 ### 2. The loader
 
@@ -70,7 +70,7 @@ and needs `jni.h` and `jvmti.h`.
 The configure step fails outright if it cannot find a client jar. That is deliberate: a loader with
 no client in it looks like it works and then does nothing.
 
-The result is `myau-natives/build/Release/myau_loader.exe`, with the DLL and the client jar built
+The result is `Release\YYMMDD\YYMMDD+BuildCount`, with the DLL and the client jar built
 into it. It is the only file you need to keep.
 
 ## Using it
