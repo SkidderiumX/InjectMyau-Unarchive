@@ -1,3 +1,5 @@
+Beta-261028+5
+Updated loader download links (payload + changelog now on github.io)
 Beta-261028+4
 Added Scaffold-only option to AutoSwap (only swaps while scaffolding)
 Beta-261028+3
