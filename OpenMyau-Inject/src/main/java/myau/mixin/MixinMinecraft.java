@@ -6,6 +6,7 @@ import myau.event.EventManager;
 import myau.event.types.EventType;
 import myau.events.*;
 import myau.module.modules.NoHitDelay;
+import myau.util.KeyBindUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -170,7 +171,11 @@ public abstract class MixinMinecraft {
         }
         KeyBinding.setKeyBindState(integer, boolean2);
         if (boolean2) {
-            EventManager.call(new KeyEvent(integer, this.currentScreen != null));
+            if (KeyBindUtil.trackKeyEvent(integer, true)) {
+                EventManager.call(new KeyEvent(integer, this.currentScreen != null));
+            }
+        } else {
+            KeyBindUtil.trackKeyEvent(integer, false);
         }
     }
 

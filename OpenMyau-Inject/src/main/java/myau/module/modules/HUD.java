@@ -18,11 +18,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.MathHelper;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -50,6 +53,10 @@ public class HUD extends Module {
     private static final int OUTLINE_SIDE = 2;
     private static final int OUTLINE_SIDEBAR = 3;
     private static final int COLOR_THEME = 6;
+    private static final int IFACE_MODERN = 0;
+    private static final int IFACE_WURST = 1;
+    private static final int IFACE_CLASSIC = 2;
+    private static final int IFACE_CREIDA = 3;
     public final ModeProperty colorMode = new ModeProperty(
             "color", 3, new String[]{"RAINBOW", "CHROMA", "ASTOLFO", "CUSTOM1", "CUSTOM12", "CUSTOM123", "THEME"}
     );
@@ -85,6 +92,10 @@ public class HUD extends Module {
     public final BooleanProperty blinkTimer = new BooleanProperty("blink-timer", true);
     public final BooleanProperty toggleSound = new BooleanProperty("toggle-sounds", true);
     public final BooleanProperty toggleAlerts = new BooleanProperty("toggle-alerts", false);
+    public final ModeProperty interfaceStyle = new ModeProperty("interface", 0,
+            new String[]{"Modern Rise", "Wurst", "Classic Rise", "Creida"});
+    public final BooleanProperty showInfo = new BooleanProperty("show-info", true,
+            () -> this.interfaceStyle.getValue() == IFACE_CLASSIC);
     private static boolean shows(Module module) {
         return module.isEnabled() && !module.isHidden();
     }
@@ -96,7 +107,9 @@ public class HUD extends Module {
         return this.scale.getValue();
     }
     private RavenFontRenderer getArraylistFont() {
-        return Fonts.arraylist(this.arraylistFont.getValue(), this.scale.getValue());
+        int selection = this.interfaceStyle.getValue() == IFACE_CLASSIC
+                ? 0 : this.arraylistFont.getValue();
+        return Fonts.arraylist(selection, this.scale.getValue());
     }
     private float hudPixels(float base) {
         return Math.max(1.0F, Math.round(base * this.scale.getValue()));
@@ -366,6 +379,9 @@ public class HUD extends Module {
         long index = 0L;
         float horizontalPadding = this.horizontalPadding();
         float thickness = this.outlineThickness();
+        boolean plain = this.interfaceStyle.getValue() == IFACE_WURST;
+        boolean modern = this.interfaceStyle.getValue() == IFACE_MODERN;
+        boolean creida = this.interfaceStyle.getValue() == IFACE_CREIDA;
         boolean firstRow = true;
         float prevLeft = 0.0F;
         float prevRight = 0.0F;
@@ -382,13 +398,13 @@ public class HUD extends Module {
             }
             float x = (float) entry.x;
             float y = (float) entry.y;
-            int color = this.getColor(now, index).getRGB();
+            int color = plain ? Color.WHITE.getRGB() : this.getColor(now, index).getRGB();
             float boxLeft = x - horizontalPadding;
             float boxRight = x + entry.width + horizontalPadding;
             float boxTop = y - topPadding;
             float boxBottom = boxTop + spacing;
             RenderUtil.enableRenderState();
-            if (this.background.getValue() > 0) {
+            if (!plain && this.background.getValue() > 0) {
                 RenderUtil.drawRect(
                         boxLeft,
                         boxTop,
@@ -397,7 +413,14 @@ public class HUD extends Module {
                         new Color(0.0F, 0.0F, 0.0F, this.background.getValue().floatValue() / 100.0F).getRGB()
                 );
             }
-            this.drawArrayListOutline(boxLeft, boxRight, boxTop, boxBottom, color, firstRow, prevLeft, prevRight);
+            if (!plain) {
+                this.drawArrayListOutline(boxLeft, boxRight, boxTop, boxBottom, color, firstRow, prevLeft, prevRight);
+            }
+            if (modern) {
+                RenderUtil.drawRect(boxRight, boxTop, boxRight + thickness, boxBottom, color);
+            } else if (creida) {
+                RenderUtil.drawRect(boxLeft - thickness, boxTop, boxLeft, boxBottom, color);
+            }
             RenderUtil.disableRenderState();
             this.arraylistDraw(entry.displayText, x, this.arraylistTextY(y), color);
             firstRow = false;
@@ -414,13 +437,13 @@ public class HUD extends Module {
             }
             index++;
         }
-        if (!firstRow && this.arraylistOutline.getValue() == OUTLINE_SIDEBAR) {
+        if (!firstRow && !plain && this.arraylistOutline.getValue() == OUTLINE_SIDEBAR) {
             RenderUtil.enableRenderState();
             RenderUtil.drawRect(sidebarBottomLeft, sidebarBottom, sidebarBottomRight,
                     sidebarBottom + thickness, sidebarBottomColor);
             RenderUtil.disableRenderState();
         }
-        if (!firstRow && this.arraylistOutline.getValue() == OUTLINE_FULL) {
+        if (!firstRow && !plain && this.arraylistOutline.getValue() == OUTLINE_FULL) {
             float capTop = this.posY.getValue() == 0 ? lastBoxBottom : lastBoxTop - thickness;
             RenderUtil.enableRenderState();
             RenderUtil.drawRect(prevLeft, capTop, prevRight, capTop + thickness, lastColor);
@@ -450,6 +473,7 @@ public class HUD extends Module {
             long l = System.currentTimeMillis();
 
             long offset = this.renderArrayList(l);
+            this.renderWatermark(l);
             if (this.blinkTimer.getValue()) {
                 BlinkModules blinkingModule = Myau.blinkManager.getBlinkingModule();
                 if (blinkingModule != BlinkModules.NONE && blinkingModule != BlinkModules.AUTO_BLOCK) {
@@ -476,6 +500,43 @@ public class HUD extends Module {
             GlStateManager.enableDepth();
         }
     }
+    private void renderWatermark(long now) {
+        int style = this.interfaceStyle.getValue();
+        RavenFontRenderer font = this.getArraylistFont();
+        if (style == IFACE_MODERN) {
+            font.drawString("Myau " + Myau.version, 4.0F, 4.0F, this.getColor(now).getRGB(), true);
+        } else if (style == IFACE_WURST) {
+            String text = "Myau " + Myau.version;
+            float width = font.getStringWidth(text) + 8.0F;
+            RenderUtil.enableRenderState();
+            RenderUtil.drawRect(2.0F, 4.0F, 2.0F + width, 19.0F, Color.WHITE.getRGB());
+            font.drawString(text, 6.0F, 8.0F, Color.BLACK.getRGB(), false);
+            RenderUtil.disableRenderState();
+        } else if (style == IFACE_CLASSIC) {
+            mc.fontRendererObj.drawStringWithShadow("Myau",
+                    4, 4, Color.WHITE.getRGB());
+            if (this.showInfo.getValue() && mc.thePlayer != null) {
+                String info = String.format("X: %d Y: %d Z: %d  |  %d fps",
+                        MathHelper.floor_double(mc.thePlayer.posX),
+                        MathHelper.floor_double(mc.thePlayer.posY),
+                        MathHelper.floor_double(mc.thePlayer.posZ),
+                        Minecraft.getDebugFPS());
+                mc.fontRendererObj.drawStringWithShadow(info, 4,
+                        4 + mc.fontRendererObj.FONT_HEIGHT + 2, Color.LIGHT_GRAY.getRGB());
+            }
+        } else {
+            String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
+            String name = mc.thePlayer == null ? "player" : mc.thePlayer.getName();
+            String text = "Myau | " + Myau.version + " | " + name + " | " + time;
+            float width = font.getStringWidth(text) + 10.0F;
+            RenderUtil.enableRenderState();
+            RenderUtil.drawRect(2.0F, 3.0F, 2.0F + width, 18.0F,
+                    new Color(0.0F, 0.0F, 0.0F, 0.6F).getRGB());
+            font.drawString(text, 7.0F, 7.0F, this.getColor(now).getRGB(), true);
+            RenderUtil.disableRenderState();
+        }
+    }
+
     private static final class Entry {
         final Module module;
         float animationTime;

@@ -5120,6 +5120,20 @@
         "srg": "field_148936_d"
       }
     },
+    "net.minecraft.network.play.server.S27PacketExplosion": {
+      "posX": {
+        "notch": "a",
+        "srg": "field_149158_a"
+      },
+      "posY": {
+        "notch": "b",
+        "srg": "field_149156_b"
+      },
+      "posZ": {
+        "notch": "c",
+        "srg": "field_149157_c"
+      }
+    },
     "net.minecraft.util.BlockPos": {
       "NUM_X_BITS": {
         "notch": "c",

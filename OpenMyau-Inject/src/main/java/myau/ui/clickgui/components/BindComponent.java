@@ -1,6 +1,7 @@
 package myau.ui.clickgui.components;
 
 import myau.module.Module;
+import myau.util.GuiFonts;
 import myau.util.KeyBindUtil;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;
@@ -31,7 +32,7 @@ public class BindComponent extends Component {
         String text = this.binding
                 ? "Press a key..."
                 : "Bind: '§e" + this.keyName() + "§r'";
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(text,
+        GuiFonts.drawStringWithShadow(text,
                 (this.parent.category.getX() + 4) * 2,
                 (this.parent.category.getY() + this.offset + 3) * 2,
                 BIND_COLOR);

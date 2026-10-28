@@ -1,7 +1,9 @@
 package myau.module;
 
 import myau.Myau;
+import myau.command.commands.DebugCommand;
 import myau.module.modules.HUD;
+import myau.util.ChatUtil;
 import myau.util.KeyBindUtil;
 
 public abstract class Module {
@@ -63,6 +65,9 @@ public abstract class Module {
     public boolean toggle() {
         boolean enabled = !this.enabled;
         this.setEnabled(enabled);
+        if (DebugCommand.isModeEnabled("KeyBindDebug")) {
+            ChatUtil.sendFormatted(String.format("&8[diag] toggle %s -> %s", this.getName(), this.enabled ? "&a&lON" : "&c&lOFF")); // TEMP-DIAG
+        }
         if (this.enabled == enabled) {
             if (((HUD) Myau.moduleManager.modules.get(HUD.class)).toggleSound.getValue()) {
                 Myau.moduleManager.playSound();

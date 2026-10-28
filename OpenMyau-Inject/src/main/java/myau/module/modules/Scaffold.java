@@ -9,6 +9,7 @@ import myau.inject.Log;
 import myau.module.Module;
 import myau.property.properties.BooleanProperty;
 import myau.property.properties.FloatProperty;
+import myau.property.properties.IntProperty;
 import myau.property.properties.ModeProperty;
 import myau.property.properties.PercentProperty;
 import myau.util.*;
@@ -73,6 +74,7 @@ public class Scaffold extends Module {
 
     private static final int AIR_TICKS_CAP = 100;
     private int airTicks = 0;
+    private int placeDelayCounter = 0;
     private float grimYaw = 0.0F;
     private float grimPitch = 0.0F;
     private int rotationTick = 0;
@@ -112,6 +114,7 @@ public class Scaffold extends Module {
     public final BooleanProperty keepYonPress = new BooleanProperty("keep-y-on-press", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty disableWhileJumpActive = new BooleanProperty("no-keep-y-on-jump-potion", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty multiplace = new BooleanProperty("multi-place", true);
+    public final IntProperty placeDelay = new IntProperty("place-delay", 0, 0, 10);
     public final BooleanProperty safeWalk = new BooleanProperty("safe-walk", true);
     public final BooleanProperty swing = new BooleanProperty("swing", true);
     public final BooleanProperty itemSpoof = new BooleanProperty("item-spoof", false);
@@ -363,6 +366,13 @@ public class Scaffold extends Module {
             return false;
         }
     }
+    /**
+     * True while the module is enabled and manages bridging rotations, which is
+     * the practical definition of "actively scaffolding" for other modules.
+     */
+    public boolean isScaffolding() {
+        return this.isEnabled() && this.rotationMode.getValue() != 0;
+    }
     public Scaffold() {
         super("Scaffold", false);
     }
@@ -374,6 +384,9 @@ public class Scaffold extends Module {
         if (this.isEnabled() && event.getType() == EventType.PRE) {
             if (this.rotationTick > 0) {
                 this.rotationTick--;
+            }
+            if (this.placeDelayCounter > 0) {
+                this.placeDelayCounter--;
             }
             if (mc.thePlayer.onGround) {
                 if (this.stage > 0) {
@@ -717,8 +730,10 @@ public class Scaffold extends Module {
                             this.rotationTick, this.towering,
                             blockData != null && hitVec != null && this.rotationTick <= 0));
                 }
-                if (blockData != null && hitVec != null && this.rotationTick <= 0) {
+                if (blockData != null && hitVec != null && this.rotationTick <= 0
+                        && this.placeDelayCounter <= 0) {
                     this.place(blockData.blockPos(), blockData.facing(), hitVec);
+                    this.placeDelayCounter = this.placeDelay.getValue();
                     if (this.multiplace.getValue()) {
                         for (int i = 0; i < 3; i++) {
                             blockData = this.getBlockData();

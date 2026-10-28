@@ -210,6 +210,9 @@ public final class Callbacks {
             if (key == 0) {
                 return;
             }
+            if (!KeyBindUtil.trackKeyEvent(key, true)) {
+                return;
+            }
             EventManager.call(new KeyEvent(key, true));
         } catch (Throwable swallowed) {
             Log.swallowed(swallowed);
@@ -221,7 +224,14 @@ public final class Callbacks {
         boolean pressed = lastPressed;
         boolean synthetic = lastSynthetic;
         try {
-            if (!Bootstrap.isStarted() || !pressed || synthetic) {
+            if (!Bootstrap.isStarted() || synthetic) {
+                return;
+            }
+            if (!pressed) {
+                KeyBindUtil.trackKeyEvent(key, false);
+                return;
+            }
+            if (!KeyBindUtil.trackKeyEvent(key, true)) {
                 return;
             }
             EventManager.call(new KeyEvent(key,
@@ -260,6 +270,9 @@ public final class Callbacks {
             if (!Bootstrap.isStarted() || !GameState.inGame()) {
                 return;
             }
+            // vanilla unPressAllKeys() drops every binding's pressed state here
+            // without producing change events; keep the press-edge tracker in sync
+            KeyBindUtil.clearHeldKeys();
             InventoryMove module =
                     (InventoryMove) Myau.moduleManager.modules.get(InventoryMove.class);
             if (module != null && module.isEnabled()) {

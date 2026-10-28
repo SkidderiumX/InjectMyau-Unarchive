@@ -156,6 +156,7 @@ public class Myau {
         moduleManager.modules.put(Theme.class, new Theme());
         moduleManager.modules.put(FastBreak.class, new FastBreak());
         moduleManager.modules.put(AutoPlace.class, new AutoPlace());
+        moduleManager.modules.put(AutoSwap.class, new AutoSwap());
         moduleManager.modules.put(AutoPot.class, new AutoPot());
         moduleManager.modules.put(AntiBot.class, new AntiBot());
         moduleManager.modules.put(Disabler.class, new Disabler());
@@ -219,6 +220,8 @@ public class Myau {
         moduleManager.modules.put(Xray.class, new Xray());
         commandManager.commands.add(new BindCommand());
         commandManager.commands.add(new ConfigCommand());
+
+        commandManager.commands.add(new DebugCommand());
         commandManager.commands.add(new DenickCommand());
         commandManager.commands.add(new FriendCommand());
         commandManager.commands.add(new HelpCommand());
@@ -271,6 +274,12 @@ public class Myau {
             version = "dev";
         }
 
-        AccountManager.init();
+        try {
+            Class.forName("net.minecraftforge.common.MinecraftForge");
+            AccountManager.init();
+        } catch (Throwable ignored) {
+            // Outside Forge there is no event bus for the account manager;
+            // the client runs without it.
+        }
     }
 }

@@ -6,6 +6,7 @@ import myau.ui.clickgui.Category;
 import myau.ui.clickgui.GuiRender;
 import myau.ui.clickgui.Timer;
 import myau.ui.clickgui.animation.ScrollOffsetAnimation;
+import myau.util.GuiFonts;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -69,10 +70,15 @@ public class CategoryComponent {
         this.modules.clear();
         float y = TITLE_HEIGHT + 3.0F;
         for (Module module : Categories.modulesOf(this.category)) {
-            ModuleComponent component = new ModuleComponent(module, this, y);
-            component.restoreOpenState(Boolean.TRUE.equals(openStates.get(module.getName())));
-            this.modules.add(component);
-            y += component.getHeightF();
+            try {
+                ModuleComponent component = new ModuleComponent(module, this, y);
+                component.restoreOpenState(Boolean.TRUE.equals(openStates.get(module.getName())));
+                this.modules.add(component);
+                y += component.getHeightF();
+            } catch (Throwable failed) {
+                // One broken module must not prevent the whole panel (or GUI) from opening.
+                failed.printStackTrace();
+            }
         }
     }
     public List<ModuleComponent> getModules() {
@@ -176,7 +182,7 @@ public class CategoryComponent {
         }
         this.lastBottom = bottom;
         String label = this.category.getLabel();
-        float centred = this.x + WIDTH / 2.0F - mc.fontRendererObj.getStringWidth(label) / 2.0F;
+        float centred = this.x + WIDTH / 2.0F - GuiFonts.getStringWidth(label) / 2.0F;
         float targetNameX = this.opened ? centred : this.x + 12.0F;
         float nameX = targetNameX;
         if (this.nameTimer != null) {
@@ -190,7 +196,7 @@ public class CategoryComponent {
         GuiRender.drawRoundedGradientOutlinedRect(this.x - 2.0F, this.y, this.x + WIDTH + 2.0F, bottom,
                 10.0F, BACKGROUND, OUTLINE_LEFT, OUTLINE_RIGHT);
         this.renderIcon((int) (this.x + 1.0F), (int) (this.y + 4.0F), this.opened || this.hoveringTitle);
-        mc.fontRendererObj.drawStringWithShadow(label, nameX, this.y + 4.0F, NAME_COLOR);
+        GuiFonts.drawStringWithShadow(label, nameX, this.y + 4.0F, NAME_COLOR);
         if (this.opened || this.openTimer != null) {
             float top = this.y + TITLE_HEIGHT + 3.0F;
             float height = Math.max(0.0F, bottom - 2.0F - top);

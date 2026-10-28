@@ -17,12 +17,19 @@ The Hypixel support will not be update because i dont have a pernament minecraft
 ```
 InjectMyau/
 ├── OpenMyau-Inject/    the client itself (Java, Gradle, Forge 1.8.9)
-└── myau-natives/       the loader and the injected DLL (C++, CMake, Windows)
+├── myau-natives/       the loader and the injected DLL (C++, CMake, Windows)
+├── Release/            normal builds, one dated folder per day
+└── Beta/               beta builds, one dated folder per day
 ```
 
-The two build separately and meet once: the loader embeds the client jar as a resource, so the
-Gradle build has to run first and the CMake build picks its output up from
-`../OpenMyau-Inject/build/libs`.
+The Gradle build drives both halves: it builds the client jar, then runs the CMake build
+itself, since the loader embeds the client jar as a resource. Each build lands in a dated
+folder — `Release/<YYMMDD>/<YYMMDD>+<count>/` or `Beta/<YYMMDD>/Beta-<YYMMDD>+<count>/` —
+holding the jar, the DLL and both loaders. Build artifacts stay out of the repository.
+
+Beta changes are tracked in `Beta/beta-changelog.txt`, one `Beta-<version>` block per build,
+newest first. The loader shows the same changelog over the network, so keeping it current is
+part of publishing a build.
 
 ## Requirements
 
@@ -39,7 +46,34 @@ on anything below 16, and 21 and above break other parts of the toolchain. Point
 
 ## Building
 
-### 1. The client
+### 1. Everything at once (recommended)
+
+```bash
+cd OpenMyau-Inject
+.\gradlew.bat buildBeta      # beta build: jar + DLL + loaders
+.\gradlew.bat buildLatest    # normal build: jar + DLL + loaders
+.\gradlew.bat buildDll       # normal build without bumping the build count
+```
+
+On Windows use `gradlew.bat`. Each `buildBeta`/`buildLatest` run consumes the next number
+from its channel's daily counter (`OpenMyau-Inject/build-count.properties`, one counter per
+channel, reset every day) and publishes a dated folder:
+
+```
+Beta/261013/Beta-261013+1/
+├── Myau-Beta-261013+1.jar
+├── myau_native_beta.dll
+├── myau_loader.exe
+└── myau_loader_local.exe
+```
+
+Release builds mirror this under `Release/<YYMMDD>/<YYMMDD>+<count>/` with `Myau-<...>.jar`
+and `myau_native.dll`. Old builds are kept — every build gets its own child folder. The
+dated folder is all you need to keep; run the loader from there.
+
+### 2. The pieces separately (optional)
+
+Client jar only:
 
 ```bash
 cd OpenMyau-Inject
@@ -48,7 +82,7 @@ cd OpenMyau-Inject
 
 The jar lands in `Beta\YYMMDD\Beta-YYMMDD+BUILDCOUNT`. On Windows use `gradlew.bat`.
 
-### 2. The loader
+Loader only (needs a client jar in `OpenMyau-Inject/build/libs`, or pass one explicitly):
 
 ```bash
 cd myau-natives
@@ -71,7 +105,8 @@ The configure step fails outright if it cannot find a client jar. That is delibe
 no client in it looks like it works and then does nothing.
 
 The result is `myau-natives/build/Release/myau_loader.exe`, with the DLL and the client jar built
-into it. It is the only file you need to keep.
+into it. When building through Gradle (section 1) the same files are published into the dated
+`Release/` or `Beta/` folder instead, which is the set to keep.
 
 ## Using it
 
@@ -82,7 +117,9 @@ into it. It is the only file you need to keep.
 The loader looks for a running `java.exe` or `javaw.exe` that is a Minecraft process, writes the DLL
 and the client jar to `%TEMP%`, and attaches. It says **Loaded** when the client is in.
 
-Once it is in, `RSHIFT` opens the menu and `.help` in chat lists the commands.
+Once it is in, `RSHIFT` opens the menu and `.help` in chat lists the commands. The menu comes in
+two styles: the classic click GUI and a Rise-style panel — switch between them under
+Click Gui > Style, which also takes Font, GUI-Scale and Font-Size options.
 
 Injecting twice into the same game does nothing the second time — the classes are already loaded and
 will not be read again. To pick up a new build, close Minecraft, start it again, and inject the new
@@ -93,6 +130,11 @@ loader.
 The client writes to `%TEMP%\myau-native.log`, and that is the first place to look. It records every
 hook it installed and every name it failed to resolve. `System.out` is not a substitute: Badlion
 sends it somewhere you cannot read.
+
+If a module misbehaves in game, `.debug` turns on diagnostic prints for exactly that:
+`.debug enable KeyBindDebug` logs every key press and which module it matched, and RotsDebug and
+PlacementDebug do the same for server rotations and block placement. `.debug` with no argument
+shows what is currently enabled.
 
 ## How it works
 
@@ -123,7 +165,8 @@ separate implementations of the same hooks, so anything touching one usually has
 ## Credits
 
 Based on Myau 250910, and on [OpenMyau](https://github.com/60124808866/OpenMyau). The click GUI came
-from Raven b3 by blowsy. Various modules are ported from Raven, Rise and Astralis.
+from Raven b3 by blowsy, and the Rise-style panel from Rise's GUI. Various modules are ported from
+Raven, Rise and Astralis.
 
 ## License
 

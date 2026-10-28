@@ -3,6 +3,7 @@ package myau.ui.clickgui.components;
 import myau.property.GroupState;
 import myau.property.properties.ModeProperty;
 import myau.ui.clickgui.GuiRender;
+import myau.util.GuiFonts;
 import myau.util.Themes;
 import net.minecraft.client.Minecraft;
 
@@ -109,8 +110,7 @@ public class ThemeGridComponent extends Component {
         int named = this.hovered >= 0 && this.hovered < themes.length
                 ? this.hovered : this.property.getValue();
         if (named >= 0 && named < themes.length) {
-            mc.fontRendererObj.drawString(
-                    themes[named].getThemeName(), x + PADDING, y + 2.0F, LABEL_COLOR, false);
+            GuiFonts.drawString(themes[named].getThemeName(), x + PADDING, y + 2.0F, LABEL_COLOR);
         }
 
         final int selected = this.property.getValue();
@@ -118,8 +118,8 @@ public class ThemeGridComponent extends Component {
         this.walk(x, y, new Visitor() {
             @Override
             public void header(GroupState state, float headerX, float headerY) {
-                mc.fontRendererObj.drawString(state.getMarker() + "  " + state.getLabel(),
-                        headerX + PADDING, headerY + 2.0F, HEADER_COLOR, false);
+                GuiFonts.drawString(state.getMarker() + "  " + state.getLabel(),
+                        headerX + PADDING, headerY + 2.0F, HEADER_COLOR);
             }
             @Override
             public void swatch(int index, Themes theme, float left, float top) {
