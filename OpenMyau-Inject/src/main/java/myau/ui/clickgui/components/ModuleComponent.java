@@ -9,6 +9,7 @@ import myau.property.properties.KeyProperty;
 import myau.property.properties.ModeProperty;
 import myau.ui.clickgui.GuiRender;
 import myau.ui.clickgui.Timer;
+import myau.util.GuiFonts;
 import net.minecraft.client.Minecraft;
 
 import java.awt.Color;
@@ -101,8 +102,8 @@ public class ModuleComponent extends Component {
             }
         }
         String name = this.module.getName();
-        mc.fontRendererObj.drawStringWithShadow(name,
-                x + this.category.getWidth() / 2.0F - mc.fontRendererObj.getStringWidth(name) / 2.0F,
+        GuiFonts.drawStringWithShadow(name,
+                x + this.category.getWidth() / 2.0F - GuiFonts.getStringWidth(name) / 2.0F,
                 y + 4.0F,
                 this.module.isEnabled() ? ENABLED_COLOR : DISABLED_COLOR);
         if (!this.opened && this.openTimer == null) {

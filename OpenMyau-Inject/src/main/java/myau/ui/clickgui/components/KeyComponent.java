@@ -1,6 +1,7 @@
 package myau.ui.clickgui.components;
 
 import myau.property.properties.KeyProperty;
+import myau.util.GuiFonts;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
@@ -35,7 +36,7 @@ public class KeyComponent extends Component {
         String text = this.binding
                 ? this.property.getName() + ": Press a key..."
                 : this.property.getName() + ": '§e" + this.property.getKeyName() + "§r'";
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(text,
+        GuiFonts.drawStringWithShadow(text,
                 (this.parent.category.getX() + 4) * 2,
                 (this.parent.category.getY() + this.offset + 3) * 2,
                 TEXT_COLOR);

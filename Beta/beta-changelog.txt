@@ -1,3 +1,30 @@
+Beta-261028+4
+Added Scaffold-only option to AutoSwap (only swaps while scaffolding)
+Beta-261028+3
+Fixed click gui failing to open with unregistered AutoSwap
+Beta-261028+2
+Added AutoSwap module (Out of blocks / Highest amount modes, swap delay 1-50 ms)
+Beta-261028+1
+Added Scaffold place-delay option (0-10 ticks between placements)
+Beta-261027+1
+Added dev key session for the .debug commands (multiple keys supported)
+Fixed bound keys needing two presses to toggle a module
+Republished Beta-261026+1
+Beta-261020+6
+Added .debug system commands (KeyBindDebug / RotsDebug / PlacementDebug)
+Beta-261020+2
+Removed the experimental Raven GUI
+Beta-261020+1
+Added experimental Raven GUI style
+Beta-261017+2
+Beta-261017+1
+Added Rise style for the Click GUI (Style CLASSIC / RISE)
+Added Font, GUI-Scale and Font-Size options for the Click GUI
+Added Disabler Advanced mode (Cancel Transactions, Cancel KeepAlive, Convert Move, Spectate Spoof, Input Spoof, Vehicle Packets, Abilities Spoof, Grim Spectate, Grim Inventory, Verus Sprint, Vulcan Sprint, MMC Reach, OmniSprint, Cancel Sprint, Verus Movement, Test Payload)
+Added Disabler brand spoofing (brand channel + Hypixel Brand)
+Added Velocity Bounce (bounce-tick, bounce-horizontal, bounce-vertical, buffer, ground-delay, tick, legit-timing)
+Added Velocity Grim fixes (grim-rotation-fix, grim-fake-s08, grim-cancel-velocity, grim-noise) with explosion knockback scaling
+Added HUD interface style setting and show-info option
 Beta-261013+4
 Added Command Chat prefix selector (. / # / @)
 Added Throw Pearl mode to MCF

@@ -134,6 +134,7 @@ public final class Categories {
                 add(modules, AntiDebuff.class);
                 add(modules, Freecam.class);
                 add(modules, AutoPlace.class);
+                add(modules, AutoSwap.class);
                 break;
             case MISC:
                 add(modules, UnInject.class);

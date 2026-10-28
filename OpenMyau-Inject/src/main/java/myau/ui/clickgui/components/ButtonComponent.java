@@ -1,6 +1,7 @@
 package myau.ui.clickgui.components;
 
 import myau.property.properties.BooleanProperty;
+import myau.util.GuiFonts;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;
 
@@ -8,7 +9,7 @@ import java.awt.Color;
 
 public class ButtonComponent extends Component {
     private static final int ENABLED_COLOR = new Color(20, 255, 0).getRGB();
-    public static final float HEIGHT = 11.0F;
+    public static final float HEIGHT = 13.0F;
     private final BooleanProperty property;
     private final ModuleComponent module;
     private float offset;
@@ -28,7 +29,7 @@ public class ButtonComponent extends Component {
 
         GL11.glScaled(0.5, 0.5, 0.5);
         String text = (this.property.getValue() ? "[+]  " : "[-]  ") + this.property.getName();
-        mc.fontRendererObj.drawStringWithShadow(text,
+        GuiFonts.drawStringWithShadow(text,
                 (this.module.category.getX() + 4) * 2,
                 (this.module.category.getY() + this.offset + 3) * 2,
                 this.property.getValue() ? ENABLED_COLOR : -1);

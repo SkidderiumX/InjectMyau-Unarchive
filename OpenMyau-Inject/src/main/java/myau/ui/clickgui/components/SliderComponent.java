@@ -6,6 +6,7 @@ import myau.property.properties.IntProperty;
 import myau.property.properties.ModeProperty;
 import myau.property.properties.PercentProperty;
 import myau.ui.clickgui.GuiRender;
+import myau.util.GuiFonts;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;
 
@@ -71,7 +72,7 @@ public class SliderComponent extends Component {
                 Color.getHSBColor((System.currentTimeMillis() % 11000L) / 11000.0F, 0.75F, 0.9F).getRGB());
         GL11.glPushMatrix();
         GL11.glScaled(0.5, 0.5, 0.5);
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(
+        GuiFonts.drawStringWithShadow(
                 this.property.getName() + ": " + (this.choice ? "§e" : "§b") + this.label(),
                 (this.module.category.getX() + 4) * 2,
                 (this.module.category.getY() + this.offset + 3) * 2,

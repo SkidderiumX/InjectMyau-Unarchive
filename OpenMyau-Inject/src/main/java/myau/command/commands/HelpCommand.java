@@ -17,7 +17,7 @@ public class HelpCommand extends Command {
         if (!Myau.moduleManager.modules.isEmpty()) {
             ChatUtil.sendFormatted(String.format("%sCommands:&r", Myau.clientName));
             for (Command command : Myau.commandManager.commands) {
-                if (!(command instanceof ModuleCommand)) {
+                if (!(command instanceof ModuleCommand) && !command.names.contains("debug")) {
                     ChatUtil.sendFormatted(String.format("&7»&r .%s&r", String.join(" &7/&r .", command.names)));
                 }
             }
