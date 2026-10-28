@@ -30,6 +30,9 @@ holding the jar, the DLL and both loaders. Build artifacts stay out of the repos
 Beta changes are tracked in `Beta/beta-changelog.txt`, one `Beta-<version>` block per build,
 newest first. The loader shows the same changelog over the network, so keeping it current is
 part of publishing a build.
+The two build separately and meet once: the loader embeds the client jar as a resource, so the
+Gradle build has to run first and the CMake build picks its output up from
+`../realease/YYMMDD/YYMMDD+BuildCount`.
 
 ## Requirements
 
@@ -81,6 +84,7 @@ cd OpenMyau-Inject
 ```
 
 The jar lands in `Beta\YYMMDD\Beta-YYMMDD+BUILDCOUNT`. On Windows use `gradlew.bat`.
+The jar lands in `../realease/YYMMDD/YYMMDD+BuildCount`. On Windows use `gradlew.bat`.
 
 Loader only (needs a client jar in `OpenMyau-Inject/build/libs`, or pass one explicitly):
 
@@ -107,6 +111,8 @@ no client in it looks like it works and then does nothing.
 The result is `myau-natives/build/Release/myau_loader.exe`, with the DLL and the client jar built
 into it. When building through Gradle (section 1) the same files are published into the dated
 `Release/` or `Beta/` folder instead, which is the set to keep.
+The result is `Release\YYMMDD\YYMMDD+BuildCount`, with the DLL and the client jar built
+into it. It is the only file you need to keep.
 
 ## Using it
 
