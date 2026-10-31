@@ -9,6 +9,10 @@
 3. Commit after building.
 4. Write the changelog entry for the build (styles below), and commit it too.
 
+The build task prints the build name and publish path in its output (e.g. `myau build: DevBuild+6` and `published to: Dev\261031\DevBuild+6`) - use that name for changelog headers, not a guessed one.
+
+In `Dev/dev-logs.txt`, the `[commit-hash]` is the hash of the commit that contains the code built for that build (step 3).
+
 Changelog files are also uploaded manually by the user to the Pages repo (github.io) - I only edit them here.
 
 # Changelog Writing Style
