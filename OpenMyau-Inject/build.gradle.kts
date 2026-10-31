@@ -18,6 +18,8 @@ val requestedTasks: String = gradle.startParameter.taskNames.joinToString(" ")
 val betaBuild: Boolean = requestedTasks.contains("buildBeta", ignoreCase = true)
 val releaseBuild: Boolean =
     betaBuild || requestedTasks.contains("buildLatest", ignoreCase = true)
+val devBuild: Boolean = requestedTasks.contains("buildDev", ignoreCase = true)
+        || requestedTasks.contains("Devbuild", ignoreCase = true)
 
 // Per-day build counters, one per channel (e.g., 261007+5 = 5th build of Oct 7, 2026).
 // Each channel resets to 1 when the day changes. Release builds consume the next
@@ -48,18 +50,24 @@ val releaseDateKey = "lastReleaseDate"
 val releaseCountKey = "releaseBuildCount"
 val betaDateKey = "lastBetaDate"
 val betaCountKey = "betaBuildCount"
+val devDateKey = "lastDevDate"
+val devCountKey = "devBuildCount"
 
-val buildCount: Int = if (releaseBuild) {
-    if (betaBuild) consumeCount(betaDateKey, betaCountKey)
-    else consumeCount(releaseDateKey, releaseCountKey)
-} else {
-    storedCount(releaseDateKey, releaseCountKey)
+val buildCount: Int = when {
+    devBuild -> consumeCount(devDateKey, devCountKey)
+    releaseBuild && betaBuild -> consumeCount(betaDateKey, betaCountKey)
+    releaseBuild -> consumeCount(releaseDateKey, releaseCountKey)
+    else -> storedCount(releaseDateKey, releaseCountKey)
 }
 
 val buildDate: String = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
-version = if (betaBuild) "Beta-$buildDate+$buildCount" else "$buildDate+$buildCount"
+version = when {
+    betaBuild -> "Beta-$buildDate+$buildCount"
+    devBuild -> "DevBuild+$buildCount"
+    else -> "$buildDate+$buildCount"
+}
 
-if (releaseBuild) {
+if (releaseBuild || devBuild) {
     println("myau build: $version")
 }
 val modid: String by project
@@ -201,7 +209,7 @@ fun latestJar(): File {
     return expected
 }
 
-fun buildNative(outputName: String, destDir: File) {
+fun buildNative(outputName: String, destDir: File, devLoader: Boolean = false) {
     val jar = latestJar()
     println("client jar: ${jar.name}")
     cmakeConfigure(listOf("-DCLIENT_JAR=${jar.invariantSeparatorsPath}"))
@@ -219,10 +227,17 @@ fun buildNative(outputName: String, destDir: File) {
     datedDir.mkdirs()
     jar.copyTo(File(datedDir, jar.name), overwrite = true)
     publishCopy(target, File(datedDir, target.name))
-    File(nativesBuildDir, "Release/myau_loader.exe").takeIf { it.isFile }
-        ?.let { publishCopy(it, File(datedDir, "myau_loader.exe")) }
-    File(nativesBuildDir, "Release/myau_loader_local.exe").takeIf { it.isFile }
-        ?.let { publishCopy(it, File(datedDir, "myau_loader_local.exe")) }
+    if (devLoader) {
+        // Dev builds ship only the dev loader -- the download/local loaders
+        // can't load myau_native_dev.dll anyway.
+        File(nativesBuildDir, "Release/myau_loader_dev.exe").takeIf { it.isFile }
+            ?.let { publishCopy(it, File(datedDir, "myau_loader_dev.exe")) }
+    } else {
+        File(nativesBuildDir, "Release/myau_loader.exe").takeIf { it.isFile }
+            ?.let { publishCopy(it, File(datedDir, "myau_loader.exe")) }
+        File(nativesBuildDir, "Release/myau_loader_local.exe").takeIf { it.isFile }
+            ?.let { publishCopy(it, File(datedDir, "myau_loader_local.exe")) }
+    }
     println("published to: ${datedDir.absolutePath}")
 }
 
@@ -269,4 +284,19 @@ tasks.register("buildBeta") {
     description = "Builds the Beta channel payload and bumps the version."
     dependsOn(tasks.assemble)
     doLast { buildNative("myau_native_beta.dll", betaDir) }
+}
+
+val devDir = file("../Dev")
+
+tasks.register("buildDev") {
+    group = "myau"
+    description = "Builds a Dev test payload (DevBuild+N) into Dev/<date>/ without touching beta/release counters."
+    dependsOn(tasks.assemble)
+    doLast { buildNative("myau_native_dev.dll", devDir, devLoader = true) }
+}
+
+tasks.register("Devbuild") {
+    group = "myau"
+    description = "Alias for buildDev."
+    dependsOn("buildDev")
 }

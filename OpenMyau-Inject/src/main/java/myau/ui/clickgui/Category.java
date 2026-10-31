@@ -9,6 +9,7 @@ public enum Category {
     MOVEMENT("Movement"),
     RENDER("Render"),
     PLAYER("Player"),
+    WORLD("World"),
     MISC("Misc"),
     CLIENT("Client");
     private final String label;

@@ -59,6 +59,7 @@ public final class Categories {
                 add(modules, LagRange.class);
                 add(modules, KnockbackDelay.class);
                 add(modules, Backtrack.class);
+                add(modules, Backtrack2.class);
                 add(modules, HitBox.class);
                 add(modules, MoreKB.class);
                 add(modules, Refill.class);
@@ -90,6 +91,9 @@ public final class Categories {
                 add(modules, SnapTap.class);
                 add(modules, BHop.class);
                 break;
+            case WORLD:
+                add(modules, Weather.class);
+                break;
             case RENDER:
                 add(modules, Animations.class);
                 add(modules, BlockCounter.class);                add(modules, FallView.class);
@@ -106,6 +110,7 @@ public final class Categories {
                 add(modules, ItemESP.class);
                 add(modules, ViewClip.class);
                 add(modules, NoHurtCam.class);
+                add(modules, MotionBlur.class);
                 add(modules, HUD.class);
                 add(modules, ChestESP.class);
                 add(modules, Trajectories.class);
