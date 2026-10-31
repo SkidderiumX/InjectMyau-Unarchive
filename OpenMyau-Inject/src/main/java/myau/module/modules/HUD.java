@@ -97,6 +97,7 @@ public class HUD extends Module {
     public final BooleanProperty hideWorld = new BooleanProperty("hide-world", false);
     public final BooleanProperty hideMisc = new BooleanProperty("hide-misc", false);
     public final BooleanProperty hideClient = new BooleanProperty("hide-client", false);
+    public final BooleanProperty boundOnly = new BooleanProperty("bound-only", false);
     public final BooleanProperty chatOutline = new BooleanProperty("chat-outline", true);
     public final BooleanProperty blinkTimer = new BooleanProperty("blink-timer", true);
     public final BooleanProperty toggleSound = new BooleanProperty("toggle-sounds", true);
@@ -131,7 +132,8 @@ public class HUD extends Module {
         if (entry.category == null) {
             entry.category = Categories.categoryOf(entry.module);
         }
-        return shows(entry.module) && !this.isCategoryHidden(entry.category);
+        return shows(entry.module) && !this.isCategoryHidden(entry.category)
+                && (!this.boundOnly.getValue() || entry.module.getKey() != 0);
     }
     private String formatEntryText(String raw) {
         String text = this.lowerCase.getValue() ? raw.toLowerCase(Locale.ROOT) : raw;
