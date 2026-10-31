@@ -8,6 +8,8 @@ import myau.events.Render2DEvent;
 import myau.events.TickEvent;
 import myau.access.AccessorGuiChat;
 import myau.module.Module;
+import myau.ui.clickgui.Categories;
+import myau.ui.clickgui.Category;
 import myau.util.ColorUtil;
 import myau.util.RenderUtil;
 import myau.util.font.Fonts;
@@ -88,6 +90,13 @@ public class HUD extends Module {
             () -> this.suffixes.getValue());
     public final BooleanProperty lowerCase = new BooleanProperty("lower-case", false);
     public final BooleanProperty removeSpaces = new BooleanProperty("remove-spaces", false);
+    public final BooleanProperty hideCombat = new BooleanProperty("hide-combat", false);
+    public final BooleanProperty hideMovement = new BooleanProperty("hide-movement", false);
+    public final BooleanProperty hideRender = new BooleanProperty("hide-render", false);
+    public final BooleanProperty hidePlayer = new BooleanProperty("hide-player", false);
+    public final BooleanProperty hideWorld = new BooleanProperty("hide-world", false);
+    public final BooleanProperty hideMisc = new BooleanProperty("hide-misc", false);
+    public final BooleanProperty hideClient = new BooleanProperty("hide-client", false);
     public final BooleanProperty chatOutline = new BooleanProperty("chat-outline", true);
     public final BooleanProperty blinkTimer = new BooleanProperty("blink-timer", true);
     public final BooleanProperty toggleSound = new BooleanProperty("toggle-sounds", true);
@@ -98,6 +107,31 @@ public class HUD extends Module {
             () -> this.interfaceStyle.getValue() == IFACE_CLASSIC);
     private static boolean shows(Module module) {
         return module.isEnabled() && !module.isHidden();
+    }
+    /**
+     * True when the module's whole click-GUI category is hidden from the
+     * arraylist through the "hide-[category]" options.
+     */
+    private boolean isCategoryHidden(Category category) {
+        if (category == null) {
+            return false;
+        }
+        switch (category) {
+            case COMBAT: return this.hideCombat.getValue();
+            case MOVEMENT: return this.hideMovement.getValue();
+            case RENDER: return this.hideRender.getValue();
+            case PLAYER: return this.hidePlayer.getValue();
+            case WORLD: return this.hideWorld.getValue();
+            case MISC: return this.hideMisc.getValue();
+            case CLIENT: return this.hideClient.getValue();
+            default: return false;
+        }
+    }
+    private boolean showsInList(Entry entry) {
+        if (entry.category == null) {
+            entry.category = Categories.categoryOf(entry.module);
+        }
+        return shows(entry.module) && !this.isCategoryHidden(entry.category);
     }
     private String formatEntryText(String raw) {
         String text = this.lowerCase.getValue() ? raw.toLowerCase(Locale.ROOT) : raw;
@@ -237,7 +271,7 @@ public class HUD extends Module {
             }
         }
         for (Entry entry : this.entries.values()) {
-            if (!shows(entry.module) && entry.animationTime == 0.0F) {
+            if (!this.showsInList(entry) && entry.animationTime == 0.0F) {
                 continue;
             }
             String name = this.formatEntryText(entry.module.getName());
@@ -252,7 +286,7 @@ public class HUD extends Module {
         this.activeEntries = this.entries
                 .values()
                 .stream()
-                .filter(entry -> shows(entry.module) || entry.animationTime > 0.0F)
+                .filter(entry -> this.showsInList(entry) || entry.animationTime > 0.0F)
                 .sorted(Comparator.comparingDouble(entry -> -entry.width))
                 .collect(Collectors.toList());
     }
@@ -339,7 +373,7 @@ public class HUD extends Module {
         float elapsed = this.lastAnimationMs == 0L ? 0.0F : Math.min(now - this.lastAnimationMs, MAX_FRAME_MS);
         this.lastAnimationMs = now;
         for (Entry entry : this.entries.values()) {
-            if (shows(entry.module)) {
+            if (this.showsInList(entry)) {
                 entry.animationTime = Math.min(entry.animationTime + elapsed / ANIMATION_MS, 10.0F);
             } else {
                 entry.animationTime = Math.max(entry.animationTime - elapsed / ANIMATION_MS, 0.0F);
@@ -351,7 +385,7 @@ public class HUD extends Module {
                 continue;
             }
             float width = entry.width;
-            boolean leaving = !shows(entry.module) && entry.animationTime < 10.0F;
+            boolean leaving = !this.showsInList(entry) && entry.animationTime < 10.0F;
             entry.targetX = this.entryX(width, leaving, screenWidth, edgeX);
             entry.targetY = this.posY.getValue() == 0
                     ? edgeY + topPadding + row
@@ -539,6 +573,7 @@ public class HUD extends Module {
 
     private static final class Entry {
         final Module module;
+        Category category;
         float animationTime;
         boolean positioned;
         double x;

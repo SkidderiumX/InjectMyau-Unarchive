@@ -169,4 +169,20 @@ public final class Categories {
             modules.add(module);
         }
     }
+
+    /**
+     * Reverse lookup of the click-GUI panel a module belongs to, or null when the
+     * module is not registered to any category.
+     */
+    public static Category categoryOf(Module module) {
+        if (module == null) {
+            return null;
+        }
+        for (Category category : Category.values()) {
+            if (modulesOf(category).contains(module)) {
+                return category;
+            }
+        }
+        return null;
+    }
 }
