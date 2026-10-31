@@ -1,0 +1,10 @@
+261031
+ -DevBuild+1 [e831d04]
+  +Motion Blur fix
+ -DevBuild+2 [e831d04]
+  +Backtrack2 re-ported 1:1 from the decompiled original Myau BackTrack source
+ -DevBuild+3 [e831d04]
+  +Backtrack2: ghost resets at real Enemy distance, packets held only while the target moves away, ordered packet release, S08 flush, dead-target reset
+ -DevBuild+4 [e831d04]
+  +New WORLD category in the click GUI
+  +Weather module (time override, forced rain, lightning strikes) ported from raven bS

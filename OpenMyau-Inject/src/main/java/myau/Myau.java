@@ -172,6 +172,7 @@ public class Myau {
         moduleManager.modules.put(HitBox.class, new HitBox());
         moduleManager.modules.put(Autoblock.class, new Autoblock());
         moduleManager.modules.put(Backtrack.class, new Backtrack());
+        moduleManager.modules.put(Backtrack2.class, new Backtrack2());
         moduleManager.modules.put(Displace.class, new Displace());
         moduleManager.modules.put(Clutch.class, new Clutch());
         moduleManager.modules.put(GodBridge.class, new GodBridge());
@@ -189,6 +190,7 @@ public class Myau {
         moduleManager.modules.put(NoFall.class, new NoFall());
         moduleManager.modules.put(NoHitDelay.class, new NoHitDelay());
         moduleManager.modules.put(NoHurtCam.class, new NoHurtCam());
+        moduleManager.modules.put(MotionBlur.class, new MotionBlur());
         moduleManager.modules.put(NoJumpDelay.class, new NoJumpDelay());
         moduleManager.modules.put(NoRotate.class, new NoRotate());
         moduleManager.modules.put(NoSlow.class, new NoSlow());
@@ -216,6 +218,7 @@ public class Myau {
         moduleManager.modules.put(Trajectories.class, new Trajectories());
         moduleManager.modules.put(Velocity.class, new Velocity());
         moduleManager.modules.put(ViewClip.class, new ViewClip());
+        moduleManager.modules.put(Weather.class, new Weather());
         moduleManager.modules.put(Wtap.class, new Wtap());
         moduleManager.modules.put(Xray.class, new Xray());
         commandManager.commands.add(new BindCommand());

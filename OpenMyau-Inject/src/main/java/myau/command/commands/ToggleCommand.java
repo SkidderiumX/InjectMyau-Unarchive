@@ -11,7 +11,7 @@ import java.util.Locale;
 
 public class ToggleCommand extends Command {
     public ToggleCommand() {
-        super(new ArrayList<>(Arrays.asList("toggle", "t")));
+        super(new ArrayList<>(Arrays.asList("toggle", "t", "enable")));
     }
 
     @Override

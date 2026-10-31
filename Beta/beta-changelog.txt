@@ -1,3 +1,11 @@
+Beta-261030+3
+Fixed Motion Blur smearing the HUD/hand (now blurs the world only, before the hand renders)
+Beta-261030+2
+Added Backtrack2 module (packet-delay backtrack, Smooth/Pulse styles, ghost ESP)
+Beta-261030+1
+Added Motion Blur module (blur-amount 0-10)
+Beta-261028+5
+Updated loader download links (payload + changelog now on github.io)
 Beta-261028+4
 Added Scaffold-only option to AutoSwap (only swaps while scaffolding)
 Beta-261028+3

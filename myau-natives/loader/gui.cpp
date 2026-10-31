@@ -30,33 +30,47 @@ constexpr UINT_PTR TIMER_TARGET = 2;
 constexpr UINT RESET_DELAY_MS = 6000;
 constexpr UINT TARGET_POLL_MS = 1000;
 
-constexpr int WINDOW_WIDTH = 980;
-constexpr int WINDOW_HEIGHT = 628;
-
 constexpr int HEADER_CENTRE_Y = 36;
 constexpr int LOGO_HEIGHT = 32;
 constexpr int DIVIDER_HEIGHT = 28;
 constexpr int DIVIDER_GAP = 15;
 
 constexpr int PANEL_TOP = 80;
-constexpr int PANEL_BOTTOM = 562;
 constexpr int LEFT_X = 30;
+
+#ifdef MYAU_DEV_LOADER
+// Compact single-column layout: there is no changelog column, so the log
+// panel spans the full width and the Inject button sits right below it.
+constexpr int WINDOW_WIDTH = 520;
+constexpr int WINDOW_HEIGHT = 628;
+constexpr int LEFT_WIDTH = 460;
+constexpr int RIGHT_X = LEFT_X;
+constexpr int RIGHT_WIDTH = 460;
+constexpr int PANEL_BOTTOM = 482;
+constexpr int BUTTON_TOP = 500;
+constexpr int PROGRESS_TOP = 570;
+constexpr int FOOTER_TOP = 588;
+#else
+constexpr int WINDOW_WIDTH = 980;
+constexpr int WINDOW_HEIGHT = 628;
 constexpr int LEFT_WIDTH = 436;
 constexpr int RIGHT_X = 490;
 constexpr int RIGHT_WIDTH = 460;
+constexpr int PANEL_BOTTOM = 562;
+constexpr int BUTTON_TOP = 448;
+constexpr int PROGRESS_TOP = 578;
+constexpr int FOOTER_TOP = 594;
+#endif
 
 constexpr int HEADING_TOP = 74;
 constexpr int CHANGELOG_TOP = 100;
 constexpr int CHANGELOG_LINE = 18;
-constexpr int BUTTON_TOP = 448;
 constexpr int BUTTON_HEIGHT = 54;
 constexpr int CHANNEL_LABEL_TOP = 512;
 constexpr int CHANNEL_TOP = 530;
 constexpr int CHANNEL_HEIGHT = 32;
 constexpr int CHANNEL_ROW = 30;
-constexpr int PROGRESS_TOP = 578;
 constexpr int PROGRESS_HEIGHT = 4;
-constexpr int FOOTER_TOP = 594;
 
 constexpr int CONSOLE_STRIP = 32;
 constexpr int CONSOLE_PAD = 14;
@@ -82,7 +96,11 @@ constexpr int SIZE_CONSOLE = 13;
 
 constexpr double DOWNLOAD_SHARE = 0.9;
 
-#ifdef MYAU_LOCAL_LOADER
+#ifdef MYAU_DEV_LOADER
+const wchar_t TITLE[] = L"Myau Injector (Dev)";
+#define MYAU_WIDEN_INNER(text) L##text
+#define MYAU_WIDEN(text) MYAU_WIDEN_INNER(text)
+#elif defined(MYAU_LOCAL_LOADER)
 const wchar_t TITLE[] = L"Myau Injector (Local)";
 #define MYAU_WIDEN_INNER(text) L##text
 #define MYAU_WIDEN(text) MYAU_WIDEN_INNER(text)
@@ -771,6 +789,7 @@ void paintText(HDC dc) {
     SIZE title = measureText(dc, g_fontTitle, TITLE);
     drawText(dc, g_fontTitle, COLOUR_TEXT, titleLeft, HEADER_CENTRE_Y - title.cy / 2, TITLE);
 
+#ifndef MYAU_DEV_LOADER
     drawText(dc, g_fontHeading, COLOUR_DIM, LEFT_X, HEADING_TOP, L"CHANGELOG");
     SIZE mark = measureText(dc, g_fontEntry, L"+");
     const int indent = mark.cx + 9;
@@ -806,6 +825,7 @@ void paintText(HDC dc) {
         RECT bar = {barX, barY, barX + 3, barY + barHeight};
         fillRect(dc, bar, COLOUR_FAINT);
     }
+#endif
 
     ButtonLayout layout = buttonLayout(dc);
     SIZE label = measureText(dc, g_fontButton, buttonLabel());
@@ -999,13 +1019,21 @@ void refreshTarget() {
 }
 #ifdef MYAU_LOCAL_LOADER
 bool loadLocalPayload(std::vector<BYTE> &library) {
+#ifdef MYAU_DEV_LOADER
+    const wchar_t *name = L"myau_native_dev.dll";
+#else
     const wchar_t *name = g_channel == 1 ? L"myau_native_beta.dll" : L"myau_native.dll";
+#endif
     std::wstring path = std::wstring(MYAU_WIDEN(MYAU_LOCAL_DIR)) + L"/" + name;
     postDebug(format(L"local payload: %s", path.c_str()));
     WIN32_FILE_ATTRIBUTE_DATA info = {};
     if (!GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &info)) {
+#ifdef MYAU_DEV_LOADER
+        postLine(format(L"%s not found -- run buildDev first", name));
+#else
         postLine(format(L"%s not found -- run %s first", name,
                         g_channel == 1 ? L"buildBeta" : L"buildLatest or buildDll"));
+#endif
         return false;
     }
     if (!readFileBytes(path, library)) {
@@ -1253,7 +1281,9 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             FillRect(g_memory, &all, g_backgroundBrush);
             paintShapes(g_memory);
             paintText(g_memory);
+#ifndef MYAU_DEV_LOADER
             paintDropdown(g_memory);
+#endif
             BitBlt(dc, paint.rcPaint.left, paint.rcPaint.top,
                    paint.rcPaint.right - paint.rcPaint.left,
                    paint.rcPaint.bottom - paint.rcPaint.top,
@@ -1299,12 +1329,15 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             RECT close = closeRect();
             RECT link = linkRect();
             RECT adv = advancedRect();
+#ifndef MYAU_DEV_LOADER
             RECT channelBox = channelBoxRect();
             RECT channelRegion = channelRegionRect();
+#endif
             bool buttonHot = g_buttonEnabled && PtInRect(&button, cursor);
             bool closeHot = PtInRect(&close, cursor) != FALSE;
             bool linkHot = !g_channelOpen && PtInRect(&link, cursor) != FALSE;
             bool advHot = PtInRect(&adv, cursor) != FALSE;
+#ifndef MYAU_DEV_LOADER
             bool boxHot = PtInRect(&channelBox, cursor) != FALSE;
             int channelHot = -1;
             if (g_channelOpen) {
@@ -1316,15 +1349,18 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                     }
                 }
             }
+#endif
             if (advHot != g_advancedHot) {
                 g_advancedHot = advHot;
                 InvalidateRect(window, &adv, FALSE);
             }
+#ifndef MYAU_DEV_LOADER
             if (boxHot != g_channelBoxHot || channelHot != g_channelHot) {
                 g_channelBoxHot = boxHot;
                 g_channelHot = channelHot;
                 InvalidateRect(window, &channelRegion, FALSE);
             }
+#endif
             if (linkHot != g_linkHot) {
                 g_linkHot = linkHot;
                 InvalidateRect(window, &link, FALSE);
@@ -1386,6 +1422,7 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                 PostMessageW(window, WM_CLOSE, 0, 0);
                 return 0;
             }
+#ifndef MYAU_DEV_LOADER
             RECT channelRegion = channelRegionRect();
             if (g_channelOpen) {
                 int picked = -1;
@@ -1408,6 +1445,7 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                 InvalidateRect(window, &channelRegion, FALSE);
                 return 0;
             }
+#endif
             RECT link = linkRect();
             if (PtInRect(&link, cursor)) {
                 ShellExecuteW(window, L"open", LINK, nullptr, nullptr, SW_SHOWNORMAL);
@@ -1421,12 +1459,15 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
                 InvalidateRect(window, &adv, FALSE);
                 return 0;
             }
+#ifndef MYAU_DEV_LOADER
             RECT channelBox = channelBoxRect();
             if (PtInRect(&channelBox, cursor)) {
+                RECT channelRegion = channelRegionRect();
                 g_channelOpen = true;
                 InvalidateRect(window, &channelRegion, FALSE);
                 return 0;
             }
+#endif
             RECT button = buttonRect();
             if (g_buttonEnabled && PtInRect(&button, cursor)) {
                 g_buttonDown = true;
@@ -1523,7 +1564,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     if (g_logo) {
         g_logoContent = trimToContent(g_logo);
     }
+#ifndef MYAU_DEV_LOADER
     useFallbackChangelog();
+#endif
     g_backgroundBrush = CreateSolidBrush(COLOUR_BACKGROUND);
     HICON icon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP));
     WNDCLASSEXW cls = {sizeof(cls)};
@@ -1558,7 +1601,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     DwmSetWindowAttribute(g_window, 33, &corner, sizeof(corner));
     ShowWindow(g_window, show);
     UpdateWindow(g_window);
+#ifndef MYAU_DEV_LOADER
     requestChangelog(g_channel);
+#endif
     MSG message;
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {
         TranslateMessage(&message);

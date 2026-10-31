@@ -158,6 +158,23 @@ if(MSVC)
     target_link_options(myau_loader_local PRIVATE /MANIFEST:NO)
 endif()
 
+add_executable(myau_loader_dev WIN32
+        loader/download.cpp
+        loader/gui.cpp
+        loader/inject.cpp
+        loader/target.cpp
+        "${GENERATED_RC}")
+add_dependencies(myau_loader_dev myau_payload)
+target_include_directories(myau_loader_dev PRIVATE loader "${CMAKE_CURRENT_BINARY_DIR}")
+target_link_libraries(myau_loader_dev PRIVATE psapi gdiplus ole32 dwmapi winhttp shell32)
+if(MSVC)
+    target_compile_definitions(myau_loader_dev PRIVATE
+            MYAU_LOCAL_LOADER
+            MYAU_DEV_LOADER
+            "MYAU_LOCAL_DIR=\"${MYAU_LOCAL_DIR_VALUE}\"")
+    target_link_options(myau_loader_dev PRIVATE /MANIFEST:NO)
+endif()
+
 if(MSVC)
     target_compile_options(myau_native PRIVATE /W3 /EHsc)
     target_compile_options(myau_loader PRIVATE /W3 /EHsc)
