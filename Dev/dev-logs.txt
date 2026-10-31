@@ -8,3 +8,5 @@
  -DevBuild+4 [e831d04]
   +New WORLD category in the click GUI
   +Weather module (time override, forced rain, lightning strikes) ported from raven bS
+ -DevBuild+5 [af81634]
+  +HUD: hide-[category] options to hide a category's modules from the arraylist
