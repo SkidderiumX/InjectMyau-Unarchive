@@ -10,3 +10,5 @@
   +Weather module (time override, forced rain, lightning strikes) ported from raven bS
  -DevBuild+5 [af81634]
   +HUD: hide-[category] options to hide a category's modules from the arraylist
+ -DevBuild+6 [b0e9940]
+  +HUD: bound-only option to show only modules with a keybind
