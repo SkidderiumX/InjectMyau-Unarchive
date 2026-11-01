@@ -219,6 +219,7 @@ public class Myau {
         moduleManager.modules.put(Velocity.class, new Velocity());
         moduleManager.modules.put(ViewClip.class, new ViewClip());
         moduleManager.modules.put(Weather.class, new Weather());
+        moduleManager.modules.put(AfterImageBlurTest.class, new AfterImageBlurTest());
         moduleManager.modules.put(Wtap.class, new Wtap());
         moduleManager.modules.put(Xray.class, new Xray());
         commandManager.commands.add(new BindCommand());

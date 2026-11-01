@@ -115,6 +115,7 @@ public final class Categories {
                 add(modules, ChestESP.class);
                 add(modules, Trajectories.class);
                 add(modules, Radar.class);
+                add(modules, AfterImageBlurTest.class);
                 break;
             case CLIENT:
                 add(modules, GuiModule.class);
