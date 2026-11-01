@@ -19,7 +19,8 @@ InjectMyau/
 ├── OpenMyau-Inject/    the client itself (Java, Gradle, Forge 1.8.9)
 ├── myau-natives/       the loader and the injected DLL (C++, CMake, Windows)
 ├── Release/            normal builds, one dated folder per day
-└── Beta/               beta builds, one dated folder per day
+├── Beta/               beta builds, one dated folder per day
+└── Dev/                dev builds, one dated folder per day
 ```
 
 The Gradle build drives both halves: it builds the client jar, then runs the CMake build
