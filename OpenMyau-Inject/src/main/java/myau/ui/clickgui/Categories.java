@@ -110,12 +110,11 @@ public final class Categories {
                 add(modules, ItemESP.class);
                 add(modules, ViewClip.class);
                 add(modules, NoHurtCam.class);
-                add(modules, MotionBlur.class);
                 add(modules, HUD.class);
                 add(modules, ChestESP.class);
                 add(modules, Trajectories.class);
                 add(modules, Radar.class);
-                add(modules, AfterImageBlurTest.class);
+                add(modules, MotionBlur.class);
                 break;
             case CLIENT:
                 add(modules, GuiModule.class);
