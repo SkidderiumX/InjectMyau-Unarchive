@@ -1,5 +1,5 @@
 # InjectMyau But Just Vietnamese servers
-https://discord.gg/m69PEwen4r
+https://dsc.gg/injectmyau
 
 Myau for Minecraft 1.8.9, loaded into a game that is already running instead of installed as a mod.
 
