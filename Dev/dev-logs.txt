@@ -1,6 +1,9 @@
 261101
  -DevBuild+1 [45df6ca]
   +Added AfterImageBlurTest module (motion echo trails via framebuffer blending, strength 0-0.9)
+ -DevBuild+2 [c0212d0]
+  +Removed the old Motion Blur module
+  +Renamed AfterImageBlurTest to MotionBlur (framebuffer echo-trail blur, strength 0-0.9)
 261031
  -DevBuild+1 [e831d04]
   +Motion Blur fix
