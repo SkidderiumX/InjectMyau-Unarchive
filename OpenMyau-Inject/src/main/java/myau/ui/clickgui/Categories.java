@@ -110,11 +110,11 @@ public final class Categories {
                 add(modules, ItemESP.class);
                 add(modules, ViewClip.class);
                 add(modules, NoHurtCam.class);
-                add(modules, MotionBlur.class);
                 add(modules, HUD.class);
                 add(modules, ChestESP.class);
                 add(modules, Trajectories.class);
                 add(modules, Radar.class);
+                add(modules, MotionBlur.class);
                 break;
             case CLIENT:
                 add(modules, GuiModule.class);
@@ -168,5 +168,21 @@ public final class Categories {
         if (module != null) {
             modules.add(module);
         }
+    }
+
+    /**
+     * Reverse lookup of the click-GUI panel a module belongs to, or null when the
+     * module is not registered to any category.
+     */
+    public static Category categoryOf(Module module) {
+        if (module == null) {
+            return null;
+        }
+        for (Category category : Category.values()) {
+            if (modulesOf(category).contains(module)) {
+                return category;
+            }
+        }
+        return null;
     }
 }
