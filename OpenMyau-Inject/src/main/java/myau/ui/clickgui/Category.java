@@ -11,7 +11,8 @@ public enum Category {
     PLAYER("Player"),
     WORLD("World"),
     MISC("Misc"),
-    CLIENT("Client");
+    CLIENT("Client"),
+    FEATURE_CONFIG("Feature Config");
     private final String label;
     private ItemStack icon;
     private ItemStack activeIcon;
