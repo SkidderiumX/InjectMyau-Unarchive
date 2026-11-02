@@ -56,6 +56,7 @@ public class Scaffold extends Module {
     private static final int SUBMIT_GRIM = 1;
     private static final int MODE_SMOOTH = 4;
     private static final int MODE_WATCHDOG = 5;
+    private static final int MODE_ADVANCE = 6;
     private static final int WATCHDOG_CANDIDATES = 256;
     private static final float[] WATCHDOG_SWEEP =
             {0.0F, 45.0F, -45.0F, 90.0F, -90.0F, 135.0F, -135.0F, 180.0F};
@@ -88,6 +89,9 @@ public class Scaffold extends Module {
     private float smoothYawOffset = 0.0F;
     private EnumFacing smoothFacing = null;
     private float debugWantYaw = 0.0F;
+    private float advanceYaw = 0.0F;
+    private float advancePitch = 0.0F;
+    private boolean advanceRotated = false;
     private int towerTick = 0;
     private int towerDelay = 0;
     private int stage = 0;
@@ -97,7 +101,19 @@ public class Scaffold extends Module {
     private EnumFacing targetFacing = null;
     public final ModeProperty rotationMode = new ModeProperty(
             "rotations", 2,
-            new String[]{"NONE", "DEFAULT", "BACKWARDS", "SIDEWAYS", "SMOOTH", "WATCHDOG"});
+            new String[]{"NONE", "DEFAULT", "BACKWARDS", "SIDEWAYS", "SMOOTH", "WATCHDOG", "ADVANCE"});
+    public final FloatProperty advanceMinYawSpeed = new FloatProperty("min-yaw-speed",
+            180.0F, 0.0F, 180.0F, 0.001F, () -> this.rotationMode.getValue() == MODE_ADVANCE);
+    public final FloatProperty advanceMaxYawSpeed = new FloatProperty("max-yaw-speed",
+            180.0F, 0.0F, 180.0F, 0.001F, () -> this.rotationMode.getValue() == MODE_ADVANCE);
+    public final FloatProperty advanceMinPitchSpeed = new FloatProperty("min-pitch-speed",
+            180.0F, 0.0F, 180.0F, 0.001F, () -> this.rotationMode.getValue() == MODE_ADVANCE);
+    public final FloatProperty advanceMaxPitchSpeed = new FloatProperty("max-pitch-speed",
+            180.0F, 0.0F, 180.0F, 0.001F, () -> this.rotationMode.getValue() == MODE_ADVANCE);
+    public final FloatProperty advanceYawLimit = new FloatProperty("advance-yaw-limit",
+            180.0F, 0.0F, 180.0F, 1.0F, () -> this.rotationMode.getValue() == MODE_ADVANCE);
+    public final FloatProperty advancePitchLimit = new FloatProperty("advance-pitch-limit",
+            180.0F, 0.0F, 180.0F, 1.0F, () -> this.rotationMode.getValue() == MODE_ADVANCE);
     public final FloatProperty watchdogYawLimit = new FloatProperty("watchdog-yaw-limit",
             180.0F, 0.0F, 180.0F, 5.0F, () -> this.rotationMode.getValue() == MODE_WATCHDOG);
     public final ModeProperty moveFix = new ModeProperty("move-fix", 1, new String[]{"NONE", "SILENT"});
@@ -136,6 +152,15 @@ public class Scaffold extends Module {
             LongJump longJump = (LongJump) Myau.moduleManager.modules.get(LongJump.class);
             return !longJump.isEnabled() || !longJump.isAutoMode() || longJump.isJumping();
         }
+    }
+
+    private float approachRotation(float current, float target, float maxDelta, boolean wrap) {
+        if (maxDelta >= 180.0F) {
+            return target;
+        }
+        float delta = wrap ? MathHelper.wrapAngleTo180_float(target - current) : target - current;
+        delta = MathHelper.clamp_float(delta, -maxDelta, maxDelta);
+        return current + delta;
     }
 
     @Override
@@ -443,6 +468,7 @@ public class Scaffold extends Module {
                             break;
                         case 2:
                         case MODE_SMOOTH:
+                        case MODE_ADVANCE:
                             if (this.yaw == -180.0F && this.pitch == 0.0F) {
                                 this.yaw = RotationUtil.quantizeAngle(yawDiffTo180);
                                 this.pitch = RotationUtil.quantizeAngle(85.0F);
@@ -708,6 +734,30 @@ public class Scaffold extends Module {
                         targetPitch = RotationUtil.quantizeAngle(RandomUtil.nextFloat(30.0F, 80.0F));
                         this.rotationTick = 3;
                         this.towering = true;
+                    }
+                    if (this.rotationMode.getValue() == MODE_ADVANCE) {
+                        if (!this.advanceRotated) {
+                            this.advanceYaw = event.getNewYaw();
+                            this.advancePitch = event.getNewPitch();
+                        }
+                        float minYawSpeed = Math.min(this.advanceMinYawSpeed.getValue(), this.advanceMaxYawSpeed.getValue());
+                        float maxYawSpeed = Math.max(this.advanceMinYawSpeed.getValue(), this.advanceMaxYawSpeed.getValue());
+                        float minPitchSpeed = Math.min(this.advanceMinPitchSpeed.getValue(), this.advanceMaxPitchSpeed.getValue());
+                        float maxPitchSpeed = Math.max(this.advanceMinPitchSpeed.getValue(), this.advanceMaxPitchSpeed.getValue());
+                        this.advanceYaw = this.approachRotation(this.advanceYaw, targetYaw,
+                                RandomUtil.nextFloat(minYawSpeed, maxYawSpeed), true);
+                        this.advancePitch = this.approachRotation(this.advancePitch, targetPitch,
+                                RandomUtil.nextFloat(minPitchSpeed, maxPitchSpeed), false);
+                        this.advanceYaw = event.getYaw() + RotationUtil.clampAngle(
+                                MathHelper.wrapAngleTo180_float(this.advanceYaw - event.getYaw()),
+                                this.advanceYawLimit.getValue());
+                        this.advancePitch = MathHelper.clamp_float(this.advancePitch,
+                                -this.advancePitchLimit.getValue(), this.advancePitchLimit.getValue());
+                        targetYaw = this.advanceYaw;
+                        targetPitch = this.advancePitch;
+                        this.advanceRotated = true;
+                    } else {
+                        this.advanceRotated = false;
                     }
                     this.grimYaw = targetYaw;
                     this.grimPitch = targetPitch;
@@ -1074,6 +1124,9 @@ public class Scaffold extends Module {
         this.towerTick = 0;
         this.towerDelay = 0;
         this.towering = false;
+        this.advanceYaw = 0.0F;
+        this.advancePitch = 0.0F;
+        this.advanceRotated = false;
     }
     @Override
     public void onDisabled() {
