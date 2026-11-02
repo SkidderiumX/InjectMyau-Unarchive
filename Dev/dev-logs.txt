@@ -1,6 +1,8 @@
 261102
  -DevBuild+1 [d941e43]
   +Added empty Feature Config category to the click GUI
+ -DevBuild+4 [2429ac5]
+  +Feature Config panel now lists bundled configs from myau/FeatureConfigs as clickable rows (click loads the config)
 261101
  -DevBuild+1 [45df6ca]
   +Added AfterImageBlurTest module (motion echo trails via framebuffer blending, strength 0-0.9)
