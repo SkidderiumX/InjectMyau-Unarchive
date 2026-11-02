@@ -1,5 +1,6 @@
 package myau.ui.clickgui.components;
 
+import myau.config.FeatureConfigStore;
 import myau.module.Module;
 import myau.ui.clickgui.Categories;
 import myau.ui.clickgui.Category;
@@ -27,13 +28,14 @@ public class CategoryComponent {
     private static final int NAME_COLOR = new Color(220, 220, 220).getRGB();
     private static final float WIDTH = 92.0F;
     private static final float TITLE_HEIGHT = 13.0F;
+    private static final float ROW_HEIGHT = 16.0F;
     private static final float OPEN_DURATION = 250.0F;
 
     private static final float MAX_SCREEN_FRACTION = 0.9F;
     private static final float SCROLL_SPEED = 20.0F;
 
     public final Category category;
-    private final List<ModuleComponent> modules = new ArrayList<ModuleComponent>();
+    private final List<Component> modules = new ArrayList<Component>();
     private final ScrollOffsetAnimation scroll = new ScrollOffsetAnimation(200L);
     private float x = 5.0F;
     private float y = 5.0F;
@@ -64,11 +66,24 @@ public class CategoryComponent {
     }
     public void reloadModules() {
         Map<String, Boolean> openStates = new HashMap<String, Boolean>();
-        for (ModuleComponent component : this.modules) {
-            openStates.put(component.module.getName(), component.isOpened());
+        for (Component component : this.modules) {
+            if (component instanceof ModuleComponent) {
+                openStates.put(((ModuleComponent) component).module.getName(), ((ModuleComponent) component).isOpened());
+            }
         }
         this.modules.clear();
         float y = TITLE_HEIGHT + 3.0F;
+        if (this.category == Category.FEATURE_CONFIG) {
+            for (String configName : FeatureConfigStore.names()) {
+                try {
+                    this.modules.add(new ConfigRowComponent(configName, this, y));
+                    y += ROW_HEIGHT;
+                } catch (Throwable failed) {
+                    failed.printStackTrace();
+                }
+            }
+            return;
+        }
         for (Module module : Categories.modulesOf(this.category)) {
             try {
                 ModuleComponent component = new ModuleComponent(module, this, y);
@@ -81,7 +96,7 @@ public class CategoryComponent {
             }
         }
     }
-    public List<ModuleComponent> getModules() {
+    public List<Component> getModules() {
         return this.modules;
     }
     public float getX() {
@@ -165,7 +180,7 @@ public class CategoryComponent {
 
     public void render() {
         Minecraft mc = Minecraft.getMinecraft();
-        for (ModuleComponent component : this.modules) {
+        for (Component component : this.modules) {
             component.updateAnimationState();
         }
         Layout layout = this.layout(this.opened || this.openTimer != null);
@@ -203,7 +218,7 @@ public class CategoryComponent {
             GuiRender.scissorPush(0.0, top, this.x + WIDTH + 4.0F, height);
             GL11.glPushMatrix();
             GL11.glTranslatef(0.0F, this.moduleY - this.y, 0.0F);
-            for (ModuleComponent component : this.modules) {
+            for (Component component : this.modules) {
                 component.render();
             }
             GL11.glPopMatrix();
@@ -228,12 +243,12 @@ public class CategoryComponent {
         GlStateManager.popMatrix();
     }
     public void drawScreen(int mouseX, int mouseY) {
-        for (ModuleComponent component : this.modules) {
+        for (Component component : this.modules) {
             component.drawScreen(mouseX, mouseY);
         }
     }
     public void onScroll(int wheel) {
-        for (ModuleComponent component : this.modules) {
+        for (Component component : this.modules) {
             component.onScroll(wheel);
         }
         if (!this.hoveringPanel || !this.opened) {
@@ -265,7 +280,7 @@ public class CategoryComponent {
         float extent = 0.0F;
         float offset = TITLE_HEIGHT + 3.0F;
 
-        for (ModuleComponent component : this.modules) {
+        for (Component component : this.modules) {
             if (placeModules) {
                 component.updateHeight(offset);
             }
@@ -303,7 +318,7 @@ public class CategoryComponent {
         this.nameTimer = null;
         this.moduleY = this.scroll.getTarget();
         this.scroll.reset(this.moduleY);
-        for (ModuleComponent component : this.modules) {
+        for (Component component : this.modules) {
             component.onGuiClosed();
         }
     }

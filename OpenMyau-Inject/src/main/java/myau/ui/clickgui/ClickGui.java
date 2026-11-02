@@ -7,6 +7,7 @@ import myau.Myau;
 import myau.module.Module;
 import myau.module.modules.GuiModule;
 import myau.ui.clickgui.components.CategoryComponent;
+import myau.ui.clickgui.components.Component;
 import myau.ui.clickgui.components.ModuleComponent;
 import myau.util.GuiFonts;
 import net.minecraft.client.Minecraft;
@@ -152,8 +153,8 @@ public class ClickGui extends GuiScreen {
         if (!target.isOpened()) {
             return;
         }
-        for (ModuleComponent module : target.getModules()) {
-            if (module.onClick(mouseX, mouseY, button)) {
+        for (Component component : target.getModules()) {
+            if (component.onClick(mouseX, mouseY, button)) {
                 return;
             }
         }
@@ -165,24 +166,24 @@ public class ClickGui extends GuiScreen {
         mouseY = zoomedMouse(mouseY, zoom);
         for (CategoryComponent panel : this.categories) {
             panel.setDragging(false, mouseX, mouseY);
-            for (ModuleComponent module : panel.getModules()) {
-                module.mouseReleased(mouseX, mouseY, button);
+            for (Component component : panel.getModules()) {
+                component.mouseReleased(mouseX, mouseY, button);
             }
         }
     }
     @Override
     protected void keyTyped(char typed, int key) {
         for (CategoryComponent panel : this.categories) {
-            for (ModuleComponent module : panel.getModules()) {
-                if (module.isBinding()) {
-                    module.keyTyped(typed, key);
+            for (Component component : panel.getModules()) {
+                if (component.isBinding()) {
+                    component.keyTyped(typed, key);
                     return;
                 }
             }
         }
         for (CategoryComponent panel : this.categories) {
-            for (ModuleComponent module : panel.getModules()) {
-                module.keyTyped(typed, key);
+            for (Component component : panel.getModules()) {
+                component.keyTyped(typed, key);
             }
         }
         if (key == Keyboard.KEY_ESCAPE) {

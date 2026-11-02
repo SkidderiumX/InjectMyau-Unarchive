@@ -152,6 +152,9 @@ tasks.processResources {
     inputs.property("mcversion", mcVersion)
     inputs.property("modid", modid)
     inputs.property("basePackage", baseGroup)
+    from("src/main/java/myau/FeatureConfigs") {
+        into("myau/FeatureConfigs")
+    }
     filesMatching(listOf("mcmod.info", "mixins.$modid.json","version.json")) {
         expand(inputs.properties)
     }

@@ -52,52 +52,7 @@ public class Config {
             }
 
             JsonObject jsonObject = parsed.getAsJsonObject();
-            for (Module module : Myau.moduleManager.modules.values()) {
-                JsonElement moduleObj = jsonObject.get(module.getName());
-                for (String legacyName : module.getLegacyNames()) {
-                    if (moduleObj != null) {
-                        break;
-                    }
-                    moduleObj = jsonObject.get(legacyName);
-                }
-                if (moduleObj != null && moduleObj.isJsonObject()) {
-                    JsonObject object = moduleObj.getAsJsonObject();
-
-                    ArrayList<Property<?>> list = Myau.propertyManager.properties.get(module.getClass());
-                    if (list != null) {
-                        for (Property<?> property : list) {
-                            if (object.has(property.getName())) {
-                                try {
-                                    property.read(object);
-                                } catch (Exception e) {
-                                    AccessorMinecraft.getLogger(mc).warn(String.format("Failed to load property %s for module %s", property.getName(), module.getName()));
-                                }
-                            }
-                        }
-                    }
-
-                    if (object.has("toggled")) {
-                        JsonElement toggled = object.get("toggled");
-                        if (toggled != null && toggled.isJsonPrimitive()) {
-                            module.setEnabled(toggled.getAsBoolean());
-                        }
-                    }
-
-                    if (object.has("key")) {
-                        JsonElement key = object.get("key");
-                        if (key != null && key.isJsonPrimitive()) {
-                            module.setKey(key.getAsInt());
-                        }
-                    }
-
-                    if (object.has("hidden")) {
-                        JsonElement hidden = object.get("hidden");
-                        if (hidden != null && hidden.isJsonPrimitive()) {
-                            module.setHidden(hidden.getAsBoolean());
-                        }
-                    }
-                }
-            }
+            apply(jsonObject);
             ChatUtil.sendFormatted(String.format("%sConfig has been loaded (&a&o%s&r)&r", Myau.clientName, file.getName()));
         } catch (FileNotFoundException e) {
             ChatUtil.sendFormatted(String.format("%sConfig file not found (&c&o%s&r)&r", Myau.clientName, file.getName()));
@@ -107,6 +62,55 @@ public class Config {
         } catch (Exception e) {
             AccessorMinecraft.getLogger(mc).error("Error loading config: " + e.getMessage());
             ChatUtil.sendFormatted(String.format("%sConfig couldn't be loaded (&c&o%s&r)&r", Myau.clientName, file.getName()));
+        }
+    }
+
+    public static void apply(JsonObject jsonObject) {
+        for (Module module : Myau.moduleManager.modules.values()) {
+            JsonElement moduleObj = jsonObject.get(module.getName());
+            for (String legacyName : module.getLegacyNames()) {
+                if (moduleObj != null) {
+                    break;
+                }
+                moduleObj = jsonObject.get(legacyName);
+            }
+            if (moduleObj != null && moduleObj.isJsonObject()) {
+                JsonObject object = moduleObj.getAsJsonObject();
+
+                ArrayList<Property<?>> list = Myau.propertyManager.properties.get(module.getClass());
+                if (list != null) {
+                    for (Property<?> property : list) {
+                        if (object.has(property.getName())) {
+                            try {
+                                property.read(object);
+                            } catch (Exception e) {
+                                AccessorMinecraft.getLogger(mc).warn(String.format("Failed to load property %s for module %s", property.getName(), module.getName()));
+                            }
+                        }
+                    }
+                }
+
+                if (object.has("toggled")) {
+                    JsonElement toggled = object.get("toggled");
+                    if (toggled != null && toggled.isJsonPrimitive()) {
+                        module.setEnabled(toggled.getAsBoolean());
+                    }
+                }
+
+                if (object.has("key")) {
+                    JsonElement key = object.get("key");
+                    if (key != null && key.isJsonPrimitive()) {
+                        module.setKey(key.getAsInt());
+                    }
+                }
+
+                if (object.has("hidden")) {
+                    JsonElement hidden = object.get("hidden");
+                    if (hidden != null && hidden.isJsonPrimitive()) {
+                        module.setHidden(hidden.getAsBoolean());
+                    }
+                }
+            }
         }
     }
 

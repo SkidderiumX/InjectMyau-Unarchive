@@ -20,6 +20,14 @@ public class Component {
     }
     public void updateHeight(float offset) {
     }
+    public void updateAnimationState() {
+    }
+    public float getScrollExtentHeightF() {
+        return this.getHeightF();
+    }
+    public boolean isBinding() {
+        return false;
+    }
     public float getOffset() {
         return 0.0F;
     }
