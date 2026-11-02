@@ -1,3 +1,6 @@
+261102
+ -DevBuild+1 [d941e43]
+  +Added empty Feature Config category to the click GUI
 261101
  -DevBuild+1 [45df6ca]
   +Added AfterImageBlurTest module (motion echo trails via framebuffer blending, strength 0-0.9)
