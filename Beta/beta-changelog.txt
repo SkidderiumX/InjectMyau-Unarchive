@@ -1,3 +1,10 @@
+Beta-261101+1
+Added WORLD category with Weather module (time override, forced rain, lightning strikes)
+Reworked Backtrack2 to port the original Myau BackTrack (real Enemy distance reset, directional packet holding, ordered release)
+Replaced Motion Blur with the afterimage blur (framebuffer echo trails, strength 0-0.9)
+Added HUD hide-combat/movement/render/player/world/misc/client options (hide a category's modules from the arraylist)
+Added HUD bound-only option (show only modules with a keybind)
+Fixed Float properties rejecting negative values (Item-Size, BlockPos-X/Y/Z, damage-motion)
 Beta-261030+3
 Fixed Motion Blur smearing the HUD/hand (now blurs the world only, before the hand renders)
 Beta-261030+2
