@@ -127,6 +127,7 @@ public class Scaffold extends Module {
             "tower", 0, new String[]{"NONE", "VANILLA", "EXTRA", "TELLY", "WATCHDOG_PREDICTION_1.8"}
     );
     public final ModeProperty keepY = new ModeProperty("keep-y", 0, new String[]{"NONE", "Vanilla", "Extrea", "Keep-Y"});
+    public final ModeProperty sneakMode = new ModeProperty("sneak-mode", 0, new String[]{"NORMAL", "MID CYCLE"});
     public final BooleanProperty keepYonPress = new BooleanProperty("keep-y-on-press", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty disableWhileJumpActive = new BooleanProperty("no-keep-y-on-jump-potion", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty multiplace = new BooleanProperty("multi-place", true);
@@ -988,6 +989,15 @@ public class Scaffold extends Module {
         if (this.isEnabled()) {
             if (mc.thePlayer.onGround && this.stage > 0 && MoveUtil.isForwardPressed()) {
                 mc.thePlayer.movementInput.jump = true;
+            }
+            if (this.sneakMode.getValue() == 0) {
+                mc.thePlayer.movementInput.sneak = true;
+            } else if (!mc.thePlayer.onGround
+                    && this.keepY.getValue() != 0
+                    && mc.thePlayer.posY >= (double) (this.startY + 1)) {
+                // shift at the highest Y value of the keep-y jump cycle, so the sneak
+                // edge protection is already engaged when landing on the new level
+                mc.thePlayer.movementInput.sneak = true;
             }
         }
     }
