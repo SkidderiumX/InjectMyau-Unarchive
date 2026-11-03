@@ -1,3 +1,6 @@
+261103
+ -DevBuild+1 [3b46d53]
+  +Scaffold: Added sneak-mode option (NORMAL = sneak while enabled, MID CYCLE = sneak at the highest Y value of the keep-y jump cycle)
 261102
  -DevBuild+1 [d941e43]
   +Added empty Feature Config category to the click GUI
