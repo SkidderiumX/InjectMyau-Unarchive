@@ -1,3 +1,6 @@
+261104
+ -DevBuild+1 [5178140]
+  +Scaffold: Added OFF option to sneak-mode (no forced sneaking)
 261103
  -DevBuild+1 [3b46d53]
   +Scaffold: Added sneak-mode option (NORMAL = sneak while enabled, MID CYCLE = sneak at the highest Y value of the keep-y jump cycle)
