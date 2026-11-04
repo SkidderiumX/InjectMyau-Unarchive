@@ -29,34 +29,36 @@ public class FeatureConfigStore {
     public static List<String> names() {
         TreeSet<String> names = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
         try {
-            URL location = FeatureConfigStore.class.getProtectionDomain().getCodeSource().getLocation();
-            if (location != null && "file".equals(location.getProtocol())) {
-                File root = new File(location.toURI());
-                if (root.isDirectory()) {
-                    File folder = new File(root, FOLDER);
+            Enumeration<URL> roots = FeatureConfigStore.class.getClassLoader().getResources(FOLDER);
+            while (roots.hasMoreElements()) {
+                URL root = roots.nextElement();
+                if ("file".equals(root.getProtocol())) {
+                    File folder = new File(root.toURI());
                     File[] files = folder.listFiles();
                     if (files != null) {
                         for (File file : files) {
-                            if (file.isFile() && file.getName().toLowerCase().endsWith(".json")) {
-                                names.add(file.getName().substring(0, file.getName().length() - 5));
-                            }
-                        }
-                    }
-                } else {
-                    try (JarFile jar = new JarFile(root)) {
-                        Enumeration<JarEntry> entries = jar.entries();
-                        while (entries.hasMoreElements()) {
-                            JarEntry entry = entries.nextElement();
-                            String name = entry.getName();
-                            if (name.startsWith(FOLDER + "/") && name.toLowerCase().endsWith(".json")) {
-                                String fileName = name.substring(FOLDER.length() + 1);
+                            String fileName = file.getName();
+                            if (file.isFile() && fileName.toLowerCase().endsWith(".json")) {
                                 names.add(fileName.substring(0, fileName.length() - 5));
                             }
                         }
                     }
+                } else if ("jar".equals(root.getProtocol())) {
+                    java.net.JarURLConnection connection = (java.net.JarURLConnection) root.openConnection();
+                    JarFile jar = connection.getJarFile();
+                    Enumeration<JarEntry> entries = jar.entries();
+                    while (entries.hasMoreElements()) {
+                        JarEntry entry = entries.nextElement();
+                        String name = entry.getName();
+                        if (name.startsWith(FOLDER + "/") && name.toLowerCase().endsWith(".json")) {
+                            String fileName = name.substring(FOLDER.length() + 1);
+                            names.add(fileName.substring(0, fileName.length() - 5));
+                        }
+                    }
+                    jar.close();
                 }
             }
-        } catch (URISyntaxException | java.io.IOException e) {
+        } catch (URISyntaxException | java.io.IOException | ClassCastException e) {
             AccessorMinecraft.getLogger(mc).warn("Failed to list feature configs: " + e.getMessage());
         }
         return new ArrayList<String>(names);
