@@ -25,14 +25,22 @@ import java.util.List;
  */
 public class EdgeAssist {
     public interface Settings {
-        boolean prePlace();
-        float edgeOffset();
-        int unsneakDelay();
-        int sneakOnJump();
-        boolean sneakKeyPressed();
-        boolean holdingBlocks();
-        boolean lookingDown();
-        boolean notMovingForward();
+        default boolean prePlace() { return false; }
+        default float edgeOffset() { return 0.0F; }
+        default int unsneakDelay() { return 50; }
+        default int sneakOnJump() { return 0; }
+        default boolean sneakKeyPressed() { return false; }
+        default boolean holdingBlocks() { return false; }
+        default boolean lookingDown() { return false; }
+        default boolean notMovingForward() { return false; }
+        /**
+         * Mid-air sneak toggle delay in ticks (0 = feature off, BridgeAssist keeps
+         * its unsneak-delay behavior). A mid-air sneak press/release requested by
+         * the edge logic is applied this many ticks after it was first requested.
+         */
+        default int midAirSneakTicks() { return 0; }
+        /** Mid-air sneak only engages on every Nth jump (1 = every jump). */
+        default int midAirCycle() { return 1; }
     }
 
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -51,6 +59,9 @@ public class EdgeAssist {
     private int sneakJumpStartTick = -1;
     private int unsneakDelayTicks = -1;
     private int unsneakStartTick = -1;
+    private int airTicks;
+    private int jumpCount;
+    private int midAirChangeTick = -1;
 
     public EdgeAssist(Settings settings) {
         this.settings = settings;
@@ -93,23 +104,76 @@ public class EdgeAssist {
             this.pressSneak(true);
             return;
         }
+        int midAirTicks = this.settings.midAirSneakTicks();
+        if (mc.thePlayer.onGround) {
+            this.airTicks = 0;
+            this.midAirChangeTick = -1;
+        } else {
+            if (this.airTicks == 0) {
+                this.jumpCount++;
+            }
+            this.airTicks++;
+        }
         double offset = this.computeEdgeOffset();
-        if (Double.isNaN(offset)) {
-            if (jumping && (this.settings.sneakOnJump() <= 0 || (forward == 0.0 && strafe == 0.0))) {
-                if (this.sneakingFromModule) {
+        if (midAirTicks <= 0 || mc.thePlayer.onGround) {
+            if (Double.isNaN(offset)) {
+                if (jumping && (this.settings.sneakOnJump() <= 0 || (forward == 0.0 && strafe == 0.0))) {
+                    if (this.sneakingFromModule) {
+                        this.tryReleaseSneak(true);
+                    }
+                } else if (mc.thePlayer.onGround) {
+                    this.pressSneak(true);
+                } else if (this.sneakingFromModule) {
                     this.tryReleaseSneak(true);
                 }
-            } else if (mc.thePlayer.onGround) {
+                return;
+            }
+            if (offset > this.settings.edgeOffset()) {
                 this.pressSneak(true);
             } else if (this.sneakingFromModule) {
                 this.tryReleaseSneak(true);
             }
             return;
         }
-        if (offset > this.settings.edgeOffset()) {
-            this.pressSneak(true);
-        } else if (this.sneakingFromModule) {
-            this.tryReleaseSneak(true);
+        // mid-air tick policy: sneak toggles are applied midAirTicks ticks after
+        // the edge condition for them first arises, on cycle jumps only
+        boolean cycleJump = this.settings.midAirCycle() <= 1
+                || this.jumpCount % this.settings.midAirCycle() == 0;
+        if (!cycleJump) {
+            this.midAirChangeTick = -1;
+            if (this.sneakingFromModule) {
+                this.releaseSneak(true);
+            }
+            return;
+        }
+        boolean wantSneak = !Double.isNaN(offset) && offset > this.settings.edgeOffset();
+        if (wantSneak) {
+            if (this.sneakingFromModule) {
+                this.midAirChangeTick = -1;
+                this.pressSneak(true);
+            } else {
+                if (this.midAirChangeTick == -1) {
+                    this.midAirChangeTick = this.airTicks;
+                }
+                if (this.airTicks - this.midAirChangeTick >= midAirTicks) {
+                    this.midAirChangeTick = -1;
+                    this.pressSneak(true);
+                }
+            }
+        } else {
+            if (!this.sneakingFromModule) {
+                this.midAirChangeTick = -1;
+                return;
+            }
+            if (this.midAirChangeTick == -1) {
+                this.midAirChangeTick = this.airTicks;
+            }
+            if (this.airTicks - this.midAirChangeTick >= midAirTicks) {
+                this.midAirChangeTick = -1;
+                this.tryReleaseSneak(true);
+            } else {
+                this.pressSneak(false);
+            }
         }
     }
 
@@ -151,6 +215,9 @@ public class EdgeAssist {
 
     public void reset() {
         this.sneakingFromModule = false;
+        this.airTicks = 0;
+        this.jumpCount = 0;
+        this.midAirChangeTick = -1;
         this.resetUnsneak();
     }
 

@@ -22,7 +22,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C03PacketPlayer;
-import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C0APacketAnimation;
 import net.minecraft.potion.Potion;
 import net.minecraft.util.*;
@@ -130,14 +129,11 @@ public class Scaffold extends Module {
     );
     public final ModeProperty keepY = new ModeProperty("keep-y", 0, new String[]{"NONE", "Vanilla", "Extrea", "Keep-Y"});
     public final ModeProperty sneakMode = new ModeProperty("sneak-mode", 1, new String[]{"OFF", "NORMAL", "MID CYCLE"});
-    public final BooleanProperty sneakPrePlace = new BooleanProperty("pre-place", false, () -> this.sneakMode.getValue() == 1);
     public final FloatProperty sneakEdgeOffset = new FloatProperty("edge-offset", 0.0F, 0.0F, 0.3F, () -> this.sneakMode.getValue() == 1);
     public final IntProperty sneakUnsneakDelay = new IntProperty("unsneak-delay", 50, 50, 300, () -> this.sneakMode.getValue() == 1);
     public final IntProperty sneakOnJump = new IntProperty("sneak-on-jump", 0, 0, 500, () -> this.sneakMode.getValue() == 1);
-    public final BooleanProperty sneakKeyPressed = new BooleanProperty("sneak-key-pressed", false, () -> this.sneakMode.getValue() == 1);
-    public final BooleanProperty sneakHoldingBlocks = new BooleanProperty("holding-blocks", false, () -> this.sneakMode.getValue() == 1);
-    public final BooleanProperty sneakLookingDown = new BooleanProperty("looking-down", false, () -> this.sneakMode.getValue() == 1);
-    public final BooleanProperty sneakNotMovingForward = new BooleanProperty("not-moving-forward", false, () -> this.sneakMode.getValue() == 1);
+    public final IntProperty midAirSneakTicks = new IntProperty("mid-air-sneak-ticks", 1, 1, 5, () -> this.sneakMode.getValue() == 1);
+    public final IntProperty midAirCycle = new IntProperty("mid-air-cycle", 1, 1, 10, () -> this.sneakMode.getValue() == 1);
     public final BooleanProperty keepYonPress = new BooleanProperty("keep-y-on-press", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty disableWhileJumpActive = new BooleanProperty("no-keep-y-on-jump-potion", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty multiplace = new BooleanProperty("multi-place", true);
@@ -148,10 +144,6 @@ public class Scaffold extends Module {
     public final BooleanProperty blockCounter = new BooleanProperty("block-counter", true);
     public final BooleanProperty debug = new BooleanProperty("debug", false);
     private final EdgeAssist edgeAssist = new EdgeAssist(new EdgeAssist.Settings() {
-        @Override
-        public boolean prePlace() {
-            return Scaffold.this.sneakPrePlace.getValue();
-        }
         @Override
         public float edgeOffset() {
             return Scaffold.this.sneakEdgeOffset.getValue();
@@ -165,20 +157,12 @@ public class Scaffold extends Module {
             return Scaffold.this.sneakOnJump.getValue();
         }
         @Override
-        public boolean sneakKeyPressed() {
-            return Scaffold.this.sneakKeyPressed.getValue();
+        public int midAirSneakTicks() {
+            return Scaffold.this.midAirSneakTicks.getValue();
         }
         @Override
-        public boolean holdingBlocks() {
-            return Scaffold.this.sneakHoldingBlocks.getValue();
-        }
-        @Override
-        public boolean lookingDown() {
-            return Scaffold.this.sneakLookingDown.getValue();
-        }
-        @Override
-        public boolean notMovingForward() {
-            return Scaffold.this.sneakNotMovingForward.getValue();
+        public int midAirCycle() {
+            return Scaffold.this.midAirCycle.getValue();
         }
     });
     private boolean shouldStopSprint() {
@@ -886,9 +870,6 @@ public class Scaffold extends Module {
                     }
                 }
             }
-            if (this.sneakMode.getValue() == 1) {
-                this.edgeAssist.handlePrePlace(event);
-            }
         }
     }
     @EventTarget
@@ -1051,14 +1032,6 @@ public class Scaffold extends Module {
                 // edge protection is already engaged when landing on the new level
                 mc.thePlayer.movementInput.sneak = true;
             }
-        }
-    }
-    @EventTarget
-    public void onPacket(PacketEvent event) {
-        if (this.isEnabled() && this.sneakMode.getValue() == 1
-                && event.getType() == EventType.SEND
-                && event.getPacket() instanceof C08PacketPlayerBlockPlacement) {
-            this.edgeAssist.handlePlacement((C08PacketPlayerBlockPlacement) event.getPacket());
         }
     }
     @EventTarget
