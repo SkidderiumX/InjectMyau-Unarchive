@@ -1,6 +1,8 @@
 261104
  -DevBuild+1 [5178140]
   +Scaffold: Added OFF option to sneak-mode (no forced sneaking)
+ -DevBuild+2 [51197cb]
+  +Scaffold: sneak-mode NORMAL is now sneak-at-edge like BridgeAssist (shared EdgeAssist engine), with BridgeAssist's settings (pre-place, edge-offset, unsneak-delay, sneak-on-jump, sneak-key-pressed, holding-blocks, looking-down, not-moving-forward) shown in Scaffold when NORMAL is selected
 261103
  -DevBuild+1 [3b46d53]
   +Scaffold: Added sneak-mode option (NORMAL = sneak while enabled, MID CYCLE = sneak at the highest Y value of the keep-y jump cycle)
