@@ -8,6 +8,8 @@
   +Scaffold: Added mid-air-sneak-ticks (1-5, how fast sneak enables/disables mid air) and mid-air-cycle (1-10, sneak every Nth jump) to sneak-mode NORMAL
  -DevBuild+4 [6dc3272]
   +Scaffold: Moved mid-air-sneak-ticks and mid-air-cycle to sneak-mode MID CYCLE (tick-delayed sneak toggle at the top of the keep-y cycle, on every Nth jump); NORMAL is plain sneak-at-edge again
+ -DevBuild+5 [1c01b52]
+  +Fixed Feature Config panel showing no configs in the injected client
 261103
  -DevBuild+1 [3b46d53]
   +Scaffold: Added sneak-mode option (NORMAL = sneak while enabled, MID CYCLE = sneak at the highest Y value of the keep-y jump cycle)
