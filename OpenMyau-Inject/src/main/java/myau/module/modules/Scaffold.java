@@ -132,8 +132,8 @@ public class Scaffold extends Module {
     public final FloatProperty sneakEdgeOffset = new FloatProperty("edge-offset", 0.0F, 0.0F, 0.3F, () -> this.sneakMode.getValue() == 1);
     public final IntProperty sneakUnsneakDelay = new IntProperty("unsneak-delay", 50, 50, 300, () -> this.sneakMode.getValue() == 1);
     public final IntProperty sneakOnJump = new IntProperty("sneak-on-jump", 0, 0, 500, () -> this.sneakMode.getValue() == 1);
-    public final IntProperty midAirSneakTicks = new IntProperty("mid-air-sneak-ticks", 1, 1, 5, () -> this.sneakMode.getValue() == 1);
-    public final IntProperty midAirCycle = new IntProperty("mid-air-cycle", 1, 1, 10, () -> this.sneakMode.getValue() == 1);
+    public final IntProperty midAirSneakTicks = new IntProperty("mid-air-sneak-ticks", 1, 1, 5, () -> this.sneakMode.getValue() == 2);
+    public final IntProperty midAirCycle = new IntProperty("mid-air-cycle", 1, 1, 10, () -> this.sneakMode.getValue() == 2);
     public final BooleanProperty keepYonPress = new BooleanProperty("keep-y-on-press", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty disableWhileJumpActive = new BooleanProperty("no-keep-y-on-jump-potion", false, () -> this.keepY.getValue() != 0);
     public final BooleanProperty multiplace = new BooleanProperty("multi-place", true);
@@ -156,15 +156,11 @@ public class Scaffold extends Module {
         public int sneakOnJump() {
             return Scaffold.this.sneakOnJump.getValue();
         }
-        @Override
-        public int midAirSneakTicks() {
-            return Scaffold.this.midAirSneakTicks.getValue();
-        }
-        @Override
-        public int midAirCycle() {
-            return Scaffold.this.midAirCycle.getValue();
-        }
     });
+    private int midCycleAirTicks;
+    private int midCycleJumpCount;
+    private int midCycleChangeTick = -1;
+    private boolean midCycleSneaking;
     private boolean shouldStopSprint() {
         if (this.isTowering()) {
             return false;
@@ -1020,19 +1016,55 @@ public class Scaffold extends Module {
             }
             if (this.sneakMode.getValue() == 1) {
                 // NORMAL: sneak-at-edge engine (same as BridgeAssist)
+                this.resetMidCycleState();
                 if (mc.currentScreen == null && !mc.thePlayer.capabilities.isFlying) {
                     this.edgeAssist.handleMoveInput();
                 }
             } else if (this.sneakMode.getValue() == 0) {
+                this.resetMidCycleState();
                 mc.thePlayer.movementInput.sneak = true;
-            } else if (!mc.thePlayer.onGround
-                    && this.keepY.getValue() != 0
-                    && mc.thePlayer.posY >= (double) (this.startY + 1)) {
-                // shift at the highest Y value of the keep-y jump cycle, so the sneak
-                // edge protection is already engaged when landing on the new level
-                mc.thePlayer.movementInput.sneak = true;
+            } else {
+                // MID CYCLE: sneak at the highest Y value of the keep-y jump cycle,
+                // with a tick-delayed toggle on every Nth jump
+                int ticks = this.midAirSneakTicks.getValue();
+                int cycle = this.midAirCycle.getValue();
+                if (mc.thePlayer.onGround) {
+                    this.midCycleAirTicks = 0;
+                    this.midCycleChangeTick = -1;
+                    this.midCycleSneaking = false;
+                } else {
+                    if (this.midCycleAirTicks == 0) {
+                        this.midCycleJumpCount++;
+                    }
+                    this.midCycleAirTicks++;
+                }
+                boolean cycleJump = cycle <= 1 || this.midCycleJumpCount % cycle == 0;
+                boolean wantSneak = !mc.thePlayer.onGround
+                        && this.keepY.getValue() != 0
+                        && cycleJump
+                        && mc.thePlayer.posY >= (double) (this.startY + 1);
+                if (wantSneak != this.midCycleSneaking) {
+                    if (this.midCycleChangeTick == -1) {
+                        this.midCycleChangeTick = this.midCycleAirTicks;
+                    }
+                    if (this.midCycleAirTicks - this.midCycleChangeTick >= ticks) {
+                        this.midCycleChangeTick = -1;
+                        this.midCycleSneaking = wantSneak;
+                    }
+                } else {
+                    this.midCycleChangeTick = -1;
+                }
+                if (this.midCycleSneaking) {
+                    mc.thePlayer.movementInput.sneak = true;
+                }
             }
         }
+    }
+    private void resetMidCycleState() {
+        this.midCycleAirTicks = 0;
+        this.midCycleJumpCount = 0;
+        this.midCycleChangeTick = -1;
+        this.midCycleSneaking = false;
     }
     @EventTarget
     public void onPlayerUpdate(PlayerUpdateEvent event) {
@@ -1179,6 +1211,7 @@ public class Scaffold extends Module {
         if (mc.thePlayer != null) {
             this.edgeAssist.reset();
         }
+        this.resetMidCycleState();
     }
     public static class BlockData {
         private final BlockPos blockPos;
